@@ -279,7 +279,7 @@
     .card, .section { box-shadow:0 4px 16px rgba(24,35,49,.05); }
 
     /* ===== Sidebar and rail refinements ===== */
-    .app { margin-top:0 !important; padding-top:14px !important; }
+    .app { margin-top:0 !important; padding-top:22px !important; }
 
     /* Both side columns: independent floating panels */
     .part-rail, .sidebar {
@@ -400,6 +400,22 @@
       .part-rail { display:none !important; }
       .subcard.is-collapsed .subcard-body { display:block !important; }
     }
+
+    /* Usage modal */
+    .usage-modal-overlay { position:fixed; inset:0; background:rgba(18,28,42,.5); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .usage-modal-overlay[hidden] { display:none !important; }
+    .usage-modal { background:#fff; border-radius:18px; box-shadow:0 28px 80px rgba(18,28,42,.22); max-width:640px; width:100%; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+    .usage-modal-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:20px 24px 16px; border-bottom:1px solid var(--line); }
+    .usage-modal-head h2 { margin:0; font-size:18px; color:var(--accent-dark); letter-spacing:-.01em; }
+    .usage-modal-close { background:none; border:1px solid var(--line); border-radius:999px; width:30px; height:30px; display:grid; place-items:center; cursor:pointer; font-size:17px; line-height:1; color:var(--muted); flex:0 0 auto; }
+    .usage-modal-close:hover { background:#f3f7fa; color:var(--ink); }
+    .usage-modal-body { padding:20px 24px 26px; overflow-y:auto; color:#284b63; font-size:14px; line-height:1.6; }
+    .usage-modal-body p { margin:10px 0; }
+    .usage-modal-body p:first-child { margin-top:0; }
+    .usage-modal-body strong { color:var(--accent-dark); }
+    .usage-modal-body a { color:var(--accent); }
+    .usage-link { background:none; border:none; padding:0; margin-top:6px; font-size:13px; color:var(--accent); cursor:pointer; text-decoration:underline; text-underline-offset:2px; display:inline-block; }
+    .usage-link:hover { color:var(--accent-dark); }
 </style>
 </head>
 <body>
@@ -408,6 +424,7 @@
 <div>
 <h1>Wheelchair Prescription Assessment Tool</h1>
 <p class="subtitle">A standalone assessment form for clinicians. This is decision support only - confirm recommendations through trial, senior clinical review and supplier product specifications.</p>
+<button class="usage-link" onclick="openUsageModal()" type="button">How to use this tool</button>
 </div>
 <div class="top-actions">
 <div class="action-group">
@@ -434,29 +451,14 @@
 </div>
 </div>
 </header>
-<main class="app">
-<nav class="part-rail" id="partRail" aria-label="Assessment parts">
-<button class="panel-toggle rail-toggle" type="button" onclick="toggleRail()" aria-expanded="true" title="Hide / show navigation"><span class="pt-glyph">‹</span><span class="pt-label">Parts</span></button>
+<main class="app rail-collapsed aside-collapsed">
+<nav class="part-rail is-collapsed" id="partRail" aria-label="Assessment parts">
+<button class="panel-toggle rail-toggle" type="button" onclick="toggleRail()" aria-expanded="false" title="Hide / show navigation"><span class="pt-glyph">‹</span><span class="pt-label">Parts</span></button>
 <div class="rail-title">Assessment parts</div>
 <div id="partNav"></div>
 <div class="rail-note">Filled parts show a green dot. Open one part at a time; use “Show all sections” in the toolbar to expand everything.</div>
 </nav>
 <form autocomplete="off" class="main-panel" id="wcForm">
-<section class="usage-card is-collapsed" id="usageCard">
-<div class="usage-head" onclick="toggleUsageCard()">
-<h2>How to use this tool (read first)</h2>
-<button class="usage-toggle" type="button" onclick="event.stopPropagation();toggleUsageCard()">Show</button>
-</div>
-<div class="usage-body">
-<p><strong>What this is.</strong> A structured clinical-reasoning aid for wheelchair and seating prescription. It is decision support, not a record in itself, and does not replace clinical judgement, trial, senior review or supplier specifications.</p>
-<p><strong>When and by whom.</strong> Intended for the prescribing clinician across an admission. It is not a single-sitting form — complete sections as the assessment unfolds (measurements and MAT early, trial and supplier detail later). Sections start minimised to reduce overload; expand only the part you are working on.</p>
-<p><strong>Working across multiple clinicians.</strong> Use <strong>Save progress</strong> to export your entries as a file, and <strong>Load progress</strong> to reopen it (or hand it to a covering clinician). This supports continuity when the primary clinician is on leave or rotates out. Data stays on your device — nothing is uploaded.</p>
-<p><strong>Documenting in iEMR.</strong> Use <strong>Create</strong> to generate the text for your records — "Create documentation to paste into medical record" produces a clean, ready-to-paste summary of everything entered so far (only completed fields are included), and "Create vendor email template" produces the supplier-facing brief. This is the intended way to get information from this tool into iEMR. Printing remains available under <strong>Print options</strong> if a hard copy is needed for a specific purpose, but it is not the primary documentation pathway.</p>
-<p><strong>Auto-calculated dimensions</strong> are starting points only — always check against posture, pressure care, transfers, propulsion and supplier measurement conventions, and confirm at trial.</p>
-<p><strong>How this maps to the Equipment Workflow.</strong> The six Parts follow the phases of the STARS Equipment Workflow tool — each Part header shows its matching workflow phase, so the two tools can be used side by side.</p>
-<p><strong>Product reference.</strong> For cushions, seating and positioning options, the national equipment database (AskNED) is a useful reference: <a href="https://askned.com.au/scooters-wheelchairs-and-wheeled-mobility/wheelchair-cushions-seating-and-positioning/" rel="noreferrer" target="_blank">AskNED — wheelchair cushions, seating and positioning</a>.</p>
-</div>
-</section>
 <section class="card section is-collapsed" id="part1">
 <div class="section-header">
 <div class="section-heading">
@@ -848,8 +850,8 @@
 </div>
 </section>
 </form>
-<aside class="sidebar" id="rightSidebar">
-<button class="panel-toggle aside-toggle" type="button" onclick="toggleAside()" aria-expanded="true" title="Hide / show guidance panel"><span class="pt-glyph">›</span><span class="pt-label">Guidance</span></button>
+<aside class="sidebar is-collapsed" id="rightSidebar">
+<button class="panel-toggle aside-toggle" type="button" onclick="toggleAside()" aria-expanded="false" title="Hide / show guidance panel"><span class="pt-glyph">›</span><span class="pt-label">Guidance</span></button>
 <div class="side-card">
 <h3>Live clinical reasoning guidance</h3>
 <div class="side-body" id="guidanceOutput"></div>
@@ -880,6 +882,23 @@
 </main>
 <div id="printSupplier"></div>
 <div id="printReport"></div>
+<div class="usage-modal-overlay" id="usageModal" hidden role="dialog" aria-modal="true" aria-labelledby="usageModalTitle">
+<div class="usage-modal">
+<div class="usage-modal-head">
+<h2 id="usageModalTitle">How to use this tool</h2>
+<button class="usage-modal-close" onclick="closeUsageModal()" type="button" aria-label="Close">&#x2715;</button>
+</div>
+<div class="usage-modal-body">
+<p><strong>What this is.</strong> A structured clinical-reasoning aid for wheelchair and seating prescription. It is decision support, not a record in itself, and does not replace clinical judgement, trial, senior review or supplier specifications.</p>
+<p><strong>When and by whom.</strong> Intended for the prescribing clinician across an admission. It is not a single-sitting form — complete sections as the assessment unfolds (measurements and MAT early, trial and supplier detail later). Sections start minimised to reduce overload; expand only the part you are working on.</p>
+<p><strong>Working across multiple clinicians.</strong> Use <strong>Save progress</strong> to export your entries as a file, and <strong>Load progress</strong> to reopen it (or hand it to a covering clinician). This supports continuity when the primary clinician is on leave or rotates out. Data stays on your device — nothing is uploaded.</p>
+<p><strong>Documenting in iEMR.</strong> Use <strong>Create</strong> to generate the text for your records — "Create documentation to paste into medical record" produces a clean, ready-to-paste summary of everything entered so far (only completed fields are included), and "Create vendor email template" produces the supplier-facing brief. This is the intended way to get information from this tool into iEMR. Printing remains available under <strong>Print options</strong> if a hard copy is needed for a specific purpose, but it is not the primary documentation pathway.</p>
+<p><strong>Auto-calculated dimensions</strong> are starting points only — always check against posture, pressure care, transfers, propulsion and supplier measurement conventions, and confirm at trial.</p>
+<p><strong>How this maps to the Equipment Workflow.</strong> The six Parts follow the phases of the STARS Equipment Workflow tool — each Part header shows its matching workflow phase, so the two tools can be used side by side.</p>
+<p><strong>Product reference.</strong> For cushions, seating and positioning options, the national equipment database (AskNED) is a useful reference: <a href="https://askned.com.au/scooters-wheelchairs-and-wheeled-mobility/wheelchair-cushions-seating-and-positioning/" rel="noreferrer" target="_blank">AskNED — wheelchair cushions, seating and positioning</a>.</p>
+</div>
+</div>
+</div>
 <script>
     const $ = (id) => document.getElementById(id);
     const qsa = (sel) => Array.from(document.querySelectorAll(sel));
@@ -1532,13 +1551,16 @@
       $('wcForm').reset();
       updateAll();
     }
-    function toggleUsageCard() {
-      const card = $('usageCard');
-      if (!card) return;
-      const collapsed = card.classList.toggle('is-collapsed');
-      const btn = card.querySelector('.usage-toggle');
-      if (btn) btn.textContent = collapsed ? 'Show' : 'Hide';
+    function openUsageModal() {
+      const modal = $('usageModal');
+      if (modal) { modal.hidden = false; document.body.style.overflow = 'hidden'; }
     }
+    function closeUsageModal() {
+      const modal = $('usageModal');
+      if (modal) { modal.hidden = true; document.body.style.overflow = ''; }
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('usageModal') && !$('usageModal').hidden) closeUsageModal(); });
+    $('usageModal')?.addEventListener('click', e => { if (e.target === $('usageModal')) closeUsageModal(); });
 
     // ---- Clean printing (skips blank fields, unticked boxes, placeholders) ----
     function humaniseName(name) {
