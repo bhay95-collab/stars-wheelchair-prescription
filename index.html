@@ -60,8 +60,8 @@
     .measurement-table td:nth-child(1) { width:52%; font-weight:650; color:#34485a; }
     .measurement-table td:nth-child(2), .measurement-table td:nth-child(3) { width:27%; }
     .sidebar { position:static; display:flex; flex-direction:column; gap:16px; max-height:none; overflow:visible; padding-bottom:20px; align-self:start; }
-    .side-card { background:white; border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:visible; }
-    .side-card h3 { margin:0; padding:14px 16px; background:var(--accent-dark); color:white; font-size:15px; }
+    .side-card { background:white; border:1px solid var(--line); border-radius:12px; box-shadow:none; overflow:visible; }
+    .side-card h3 { margin:0; padding:10px 14px 9px; background:#f5f8fa; color:#243b52; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid #e4ecf2; }
     .side-body { padding:14px 16px; overflow:visible; }
     #guidanceOutput { overflow:visible; }
     .guidance-card { border:1px solid var(--line); background:#fff; border-radius:14px; padding:12px; margin-bottom:10px; }
@@ -278,28 +278,34 @@
     .section-header { background:#fff !important; }
     .card, .section { box-shadow:0 4px 16px rgba(24,35,49,.05); }
 
-    /* ===== v4: header-joined white sidebars with soft-blue content boxes ===== */
-    .app { margin-top:0 !important; }
+    /* ===== Sidebar and rail refinements ===== */
+    .app { margin-top:0 !important; padding-top:14px !important; }
 
-    /* both side columns: white panel, no separate border-radius top edge — visually
-       continues from the header rather than floating as a separate block */
+    /* Both side columns: independent floating panels */
     .part-rail, .sidebar {
-      background:#ffffff !important; border:1px solid var(--line) !important;
-      border-top:none !important; border-radius:0 0 16px 16px !important;
-      box-shadow:0 4px 16px rgba(24,35,49,.05) !important;
+      background:#fff !important; border:1px solid #dce7f0 !important;
+      border-radius:14px !important;
+      box-shadow:0 2px 10px rgba(24,35,49,.04) !important;
     }
-    /* soft-blue content boxes inside white sidebars */
-    .side-card { background:var(--accent-soft) !important; border:1px solid #cfe3f2 !important; box-shadow:none !important; }
-    .side-card h3 { background:transparent !important; color:var(--accent-dark) !important; border-bottom:1px solid #cfe3f2; font-size:14px; padding:12px 14px 10px; }
-    .guidance-card { background:#fff !important; border:1px solid #d7e6f0 !important; }
-    .guidance-card h4 { color:var(--accent-dark); }
-    .guidance-card.risk-high { border-color:#efc8c2 !important; background:var(--danger-bg) !important; }
-    .guidance-card.risk-mod { border-color:#efdcae !important; background:var(--warn-bg) !important; }
-    .guidance-card.risk-low { border-color:#bfe4d4 !important; background:var(--good-bg) !important; }
-    .brief-preview { background:#fff !important; border:1px solid #d7e6f0 !important; }
-    .links-list a { color:var(--accent-dark); }
-    .footer-note { color:#4d6478; }
-    .ext-link-note { background:var(--accent-soft); border:1px solid #cfe3f2; border-radius:10px; padding:8px 10px; }
+    /* Clean white cards — no flat blue tint */
+    .side-card { background:#fff !important; border:1px solid #e4ecf2 !important; box-shadow:none !important; border-radius:12px !important; }
+    .side-card h3 { background:#f5f8fa !important; color:#243b52 !important; border-bottom:1px solid #e4ecf2 !important; font-size:11px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase !important; padding:10px 14px 9px !important; }
+    /* Guidance cards */
+    .guidance-card { background:#fff !important; border:1px solid #e0eaf2 !important; }
+    .guidance-card h4 { color:#1c3a50; font-size:13px; font-weight:700; margin-bottom:5px; }
+    .guidance-card ul { font-size:12.5px; line-height:1.55; color:#3d4f60; }
+    .guidance-card li { margin:3px 0; }
+    .guidance-card.risk-high { border-color:#d9b4b0 !important; background:#fff5f4 !important; }
+    .guidance-card.risk-high h4 { color:#852b26; }
+    .guidance-card.risk-mod { border-color:#d9cda0 !important; background:#fffbf0 !important; }
+    .guidance-card.risk-mod h4 { color:#714c0a; }
+    .guidance-card.risk-low { border-color:#a8d2bc !important; background:#f3fbf6 !important; }
+    .guidance-card.risk-low h4 { color:#1c5a3a; }
+    .brief-preview { background:#fafcfd !important; border:1px solid #e0eaf2 !important; }
+    .links-list a { color:var(--accent); text-decoration:none; }
+    .links-list a:hover { text-decoration:underline; color:var(--accent-dark); }
+    .footer-note { color:#5d6d7c; }
+    .ext-link-note { background:#f5f8fb; border:1px solid #e0eaf2; border-radius:10px; padding:8px 10px; }
 
     /* toolbar groups */
     .action-group { display:flex; gap:8px; padding-right:10px; border-right:1px solid var(--line); margin-right:2px; }
@@ -331,20 +337,20 @@
     .sidebar .side-card:first-of-type { margin-top:0; }
 
     /* collapsible side panels */
-    .panel-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; border:1px solid var(--line); background:#fff; color:var(--accent-dark); border-radius:10px; padding:8px 10px; cursor:pointer; font-size:12px; font-weight:800; box-shadow:0 4px 14px rgba(24,35,49,.05); margin-bottom:10px; }
-    .panel-toggle:hover { transform:translateY(-1px); }
+    .panel-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; border:0; border-bottom:1px solid #e8eff5; background:transparent; color:#7a8fa0; border-radius:0; padding:2px 2px 9px; cursor:pointer; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; box-shadow:none; margin-bottom:12px; }
+    .panel-toggle:hover { color:var(--accent-dark); transform:none; }
     .panel-toggle .pt-glyph { font-size:15px; line-height:1; display:inline-block; }
     .part-rail.is-collapsed > *:not(.panel-toggle), .sidebar.is-collapsed > *:not(.panel-toggle) { display:none !important; }
     .part-rail.is-collapsed, .sidebar.is-collapsed { padding:14px 4px !important; }
-    .part-rail.is-collapsed .panel-toggle, .sidebar.is-collapsed .panel-toggle { writing-mode:vertical-rl; width:auto; justify-content:center; gap:10px; padding:12px 8px; margin:0 auto; }
+    .part-rail.is-collapsed .panel-toggle, .sidebar.is-collapsed .panel-toggle { writing-mode:vertical-rl; width:auto; justify-content:center; gap:10px; padding:12px 8px; margin:0 auto; border:1px solid #e8eff5; border-radius:8px; background:#f8fafb; }
     .part-rail.is-collapsed .panel-toggle .pt-glyph, .sidebar.is-collapsed .panel-toggle .pt-glyph { writing-mode:horizontal-tb; transform:rotate(180deg); }
 
     .part-rail { position:sticky; top:118px; align-self:start; max-height:calc(100vh - 132px); overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
     .part-rail .rail-title { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:800; padding:2px 8px 4px; }
     .part-rail .rail-note { font-size:11px; color:var(--muted); padding:6px 8px 2px; line-height:1.35; }
     .nav-item { display:flex; gap:9px; align-items:flex-start; text-align:left; padding:9px 10px; border:1px solid transparent; border-radius:12px; background:transparent; cursor:pointer; font:inherit; color:var(--ink); width:100%; }
-    .nav-item:hover { background:#fff; border-color:var(--line); }
-    .nav-item.is-active { background:#fff; border-color:#cfe3f2; box-shadow:0 4px 14px rgba(24,35,49,.06); }
+    .nav-item:hover { background:#f5fbfe; border-color:#d0e5f2; }
+    .nav-item.is-active { background:#edf5fc; border-color:#aec9e2; box-shadow:none; border-left:3px solid var(--accent); padding-left:7px; }
     .nav-dot { flex:0 0 auto; width:11px; height:11px; border-radius:999px; margin-top:3px; border:2px solid var(--line); background:#fff; }
     .nav-dot[data-state="filled"] { background:var(--good); border-color:var(--good); }
     .nav-text { display:flex; flex-direction:column; gap:1px; min-width:0; }
