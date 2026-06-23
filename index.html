@@ -341,8 +341,9 @@
     .panel-toggle:hover { color:var(--accent-dark); transform:none; }
     .panel-toggle .pt-glyph { font-size:15px; line-height:1; display:inline-block; }
     .part-rail.is-collapsed > *:not(.panel-toggle), .sidebar.is-collapsed > *:not(.panel-toggle) { display:none !important; }
-    .part-rail.is-collapsed, .sidebar.is-collapsed { padding:14px 4px !important; }
-    .part-rail.is-collapsed .panel-toggle, .sidebar.is-collapsed .panel-toggle { writing-mode:vertical-rl; width:auto; justify-content:center; gap:10px; padding:12px 8px; margin:0 auto; border:1px solid #e8eff5; border-radius:8px; background:#f8fafb; }
+    .part-rail.is-collapsed { align-self:stretch !important; max-height:none !important; overflow:hidden !important; border-radius:0 !important; box-shadow:none !important; padding:14px 4px !important; }
+    .sidebar.is-collapsed { align-self:stretch !important; max-height:none !important; overflow-y:hidden !important; border-radius:0 !important; box-shadow:none !important; padding:14px 4px !important; }
+    .part-rail.is-collapsed .panel-toggle, .sidebar.is-collapsed .panel-toggle { writing-mode:vertical-rl; width:auto; justify-content:center; gap:10px; padding:12px 8px; margin:0 auto; border:none !important; border-radius:0 !important; background:transparent !important; }
     .part-rail.is-collapsed .panel-toggle .pt-glyph, .sidebar.is-collapsed .panel-toggle .pt-glyph { writing-mode:horizontal-tb; transform:rotate(180deg); }
 
     .part-rail { position:sticky; top:118px; align-self:start; max-height:calc(100vh - 132px); overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
@@ -393,6 +394,7 @@
       .part-rail { position:static; max-height:none; flex-direction:row; flex-wrap:wrap; gap:8px; }
       .part-rail .rail-title, .part-rail .rail-note { width:100%; }
       .nav-item { width:auto; flex:1 1 240px; }
+      .part-rail.is-collapsed, .sidebar.is-collapsed { align-self:auto !important; border-radius:14px !important; }
     }
     @media print {
       .part-rail { display:none !important; }
