@@ -648,10 +648,10 @@
 </div>
 <button class="btn subtle" id="showAllBtn" onclick="toggleShowAll(this)" type="button">Show all sections</button>
 <div class="dropdown dropdown-minor" data-dropdown>
-<button class="btn minor dropdown-trigger" onclick="toggleDropdown(this)" type="button" aria-haspopup="true" aria-expanded="false">Print options <span class="dd-chev" aria-hidden="true"></span></button>
+<button class="btn minor dropdown-trigger" onclick="toggleDropdown(this)" type="button" aria-haspopup="true" aria-expanded="false">Print / PDF <span class="dd-chev" aria-hidden="true"></span></button>
 <div class="dropdown-menu" role="menu">
-<button class="dropdown-item" onclick="closeDropdowns(); printAssessmentForm();" role="menuitem" type="button">Print full assessment</button>
-<button class="dropdown-item" onclick="closeDropdowns(); printSupplierBrief();" role="menuitem" type="button">Print supplier brief</button>
+<button class="dropdown-item" onclick="closeDropdowns(); printAssessmentForm();" role="menuitem" type="button">Print / save as PDF — full assessment</button>
+<button class="dropdown-item" onclick="closeDropdowns(); printSupplierBrief();" role="menuitem" type="button">Print / save as PDF — supplier brief</button>
 </div>
 </div>
 <button class="btn danger" onclick="clearForm()" type="button">Clear</button>
@@ -1516,13 +1516,17 @@
     function renderGuidance() {
       const d = buildGuidanceData();
       let html = '';
+      const warnings = buildMeasurementWarnings();
+      if (warnings.length) html += card('Measurement data-quality checks', warnings, 'risk-high');
       const riskClass = d.highRisk.length ? 'risk-high' : 'risk-low';
       html += card('Escalation / risk flags', d.highRisk.length ? d.highRisk : ['No major risk flags yet. Continue completing skin, posture, cognition/sensation, environment and transport fields before relying on this.'], riskClass);
       html += card('Likely equipment reasoning', d.pathway, d.pathway.length > 1 ? 'risk-mod' : '');
       html += card('Posture and seating reasoning', d.posture, hasComplexPosture() ? 'risk-mod' : '');
       html += card('Measurement checks', d.measurement, '');
       html += card('Trial and supplier handover priorities', d.trial, '');
-      html += card('Missing information before supplier handover', d.gaps.length ? d.gaps.map(g => `Add: ${g}.`) : ['Core supplier handover fields are reasonably complete.'], d.gaps.length ? 'risk-mod' : 'risk-low');
+      const gapCount = d.gaps.length;
+      const readyTitle = gapCount ? `Handover readiness — ${gapCount} item${gapCount > 1 ? 's' : ''} outstanding` : 'Handover readiness — ready';
+      html += card(readyTitle, gapCount ? d.gaps.map(g => `Add: ${g}.`) : ['Core supplier handover fields are reasonably complete.'], gapCount ? 'risk-mod' : 'risk-low');
       $('guidanceOutput').innerHTML = html;
     }
 
@@ -1743,9 +1747,107 @@
     function syncConditionalPanels() {
       toggleBariatricPanel();
     }
+    // ---- Measurement data-quality checks (transcription / plausibility) ----
+    const MEAS_MIN_MM = 50, MEAS_MAX_MM = 900, ASYMMETRY_PCT = 0.15;
+    const MEAS_LABELS = { A:'Buttock/thigh depth', B:'Lower leg length', C:'Foot length', D:'Ischial well length', E:'Seat to elbow', F:'PSIS', G:'Inferior scapula', H:'Axilla', I:'Top of shoulder', J:'Top of head', K:'Shoulder width', L:'Chest width', M:'Hip width', N:'External knee width', O:'Internal knee width', P:'External ankle/foot' };
+    // L/R asymmetry is only flagged for width/depth dimensions that feed seat
+    // sizing and where a >15% side difference is far more likely a transcription
+    // error than reality. Limb-length / hemiplegic asymmetries on other codes
+    // are clinically normal, so flagging them all would just train clinicians to
+    // ignore the warning.
+    const ASYMMETRY_CODES = ['A', 'M', 'N', 'O'];
+    function buildMeasurementWarnings() {
+      // Interpolated values below are numeric or static MEAS_LABELS constants only
+      // (number inputs), so they are safe to render as HTML via card().
+      const w = [];
+      Object.keys(MEAS_LABELS).forEach(code => {
+        const l = Number(val('meas' + code + '_L') || 0);
+        const r = Number(val('meas' + code + '_R') || 0);
+        [['left', l], ['right', r]].forEach(([side, v]) => {
+          if (v > 0 && (v < MEAS_MIN_MM || v > MEAS_MAX_MM))
+            w.push(`${MEAS_LABELS[code]} (${code}) ${side} = ${v} mm is outside the expected range ${MEAS_MIN_MM}-${MEAS_MAX_MM} mm. Check units (enter mm, not cm) and for a typo.`);
+        });
+        if (ASYMMETRY_CODES.includes(code) && l > 0 && r > 0) {
+          const diff = Math.abs(l - r) / Math.max(l, r);
+          if (diff > ASYMMETRY_PCT)
+            w.push(`${MEAS_LABELS[code]} (${code}) differs left ${l} mm vs right ${r} mm (${Math.round(diff * 100)}%). Confirm this is a genuine asymmetry and not a transcription error; if genuine, factor it into seating.`);
+        }
+      });
+      const hip = Math.max(Number(val('measM_L') || 0), Number(val('measM_R') || 0));
+      const depthA = Math.max(Number(val('measA_L') || 0), Number(val('measA_R') || 0));
+      const knN = Math.max(Number(val('measN_L') || 0), Number(val('measN_R') || 0));
+      const knO = Math.max(Number(val('measO_L') || 0), Number(val('measO_R') || 0));
+      const seatW = Number(val('reqSeatWidth') || 0);
+      const seatD = Number(val('reqSeatDepth') || 0);
+      if (knO && knN && knO > knN)
+        w.push(`Internal knee width O (${knO} mm) is greater than external knee width N (${knN} mm), which is not physically possible. Check the values are not swapped.`);
+      if (seatW && hip && seatW < hip)
+        w.push(`Required seat width ${seatW} mm is narrower than measured hip width ${hip} mm — the seat may be too narrow. Confirm the value and allow tissue/clothing clearance.`);
+      if (seatD && depthA && seatD >= depthA)
+        w.push(`Required seat depth ${seatD} mm is equal to or greater than buttock/thigh depth A ${depthA} mm — this risks pressure behind the knee. Seat depth normally sits below A to clear the popliteal fossa.`);
+      return w;
+    }
+    // Flag the proposed-dimension fields inline when a cross-check fails. The
+    // flag lives in its own dedicated child span that is removed and rebuilt
+    // each call, so it cannot accumulate regardless of updateAll() call order.
+    function setFieldFlag(el, message) {
+      if (!el) return;
+      el.querySelector('.field-flag')?.remove();
+      el.classList.toggle('access-warning', !!message);
+      if (!message) return;
+      const span = document.createElement('span');
+      span.className = 'field-flag';
+      span.innerHTML = ' <strong>Check:</strong> ' + message;
+      el.appendChild(span);
+    }
+    function applyMeasurementFieldFlags() {
+      const hip = Math.max(Number(val('measM_L') || 0), Number(val('measM_R') || 0));
+      const depthA = Math.max(Number(val('measA_L') || 0), Number(val('measA_R') || 0));
+      const seatW = Number(val('reqSeatWidth') || 0);
+      const seatD = Number(val('reqSeatDepth') || 0);
+      setFieldFlag($('guide_reqSeatWidth'), (seatW && hip && seatW < hip) ? `narrower than hip width ${hip} mm.` : '');
+      setFieldFlag($('guide_reqSeatDepth'), (seatD && depthA && seatD >= depthA) ? `equal to or deeper than thigh depth A ${depthA} mm — risk of pressure behind the knee.` : '');
+    }
+
+    // ---- Supplier-handover readiness gate ----
+    function confirmHandover(actionLabel) {
+      const gaps = buildGuidanceData().gaps;
+      if (!gaps.length) return true;
+      const list = gaps.map(g => '• ' + g).join('\n');
+      return confirm(`${gaps.length} item${gaps.length > 1 ? 's' : ''} still outstanding before supplier handover:\n\n${list}\n\n${actionLabel} anyway?`);
+    }
+
+    // ---- Shared client/file slug (used for saved JSON and printed-PDF names) ----
+    function clientFileSlug() {
+      const safeWard = (val('ward') || 'noward').replace(/[^a-z0-9]+/gi, '');
+      const parts = (val('clientName') || 'client').trim().split(/\s+/).filter(Boolean);
+      const surname = (parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'client').replace(/[^a-z0-9]+/gi, '');
+      const firstName = (parts.length > 1 ? parts.slice(0, -1).join('_') : '').replace(/[^a-z0-9]+/gi, '_');
+      const nameSlug = firstName ? `${surname}_${firstName}` : surname;
+      const now = new Date();
+      const dateStr = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      return `${safeWard}_${nameSlug}_${dateStr}`;
+    }
+    // Give the print/Save-as-PDF dialog a sensible default filename via document.title.
+    // No patient name here: the tab title is visible on-screen and in screen shares on
+    // shared ward PCs, so the title uses ward + date only. The clinician can add the name
+    // at save time; the JSON save filename (OS save dialog only) still carries the surname.
+    function printTitleSlug() {
+      const safeWard = (val('ward') || 'noward').replace(/[^a-z0-9]+/gi, '');
+      const now = new Date();
+      const dateStr = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      return `${safeWard}_${dateStr}`;
+    }
+    let printPrevTitle = null;
+    function setPrintTitle(label) {
+      printPrevTitle = document.title;
+      document.title = `${label.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '')}_${printTitleSlug()}`;
+    }
+
     function updateAll() {
       syncConditionalPanels();
       updateDimensionGuidance();
+      applyMeasurementFieldFlags();
       $('supplierBrief').textContent = buildSupplierBriefText();
       renderGuidance();
       updateManualSourceSummary();
@@ -1760,6 +1862,7 @@
       }
     }
     function copySupplierBrief() {
+      if (!confirmHandover('Copy the vendor email')) return;
       writeClipboard(buildSupplierBriefText(), 'Supplier brief copied.');
     }
     function copyClinicalReasoningGuide() {
@@ -1770,11 +1873,16 @@
       writeClipboard(`${headerParts.join('\n')}\n\n${guide}`, 'Clinical reasoning guide copied.');
     }
     function printSupplierBrief() {
+      if (!confirmHandover('Print / save the supplier brief')) return;
       $('printSupplier').innerHTML = buildSupplierBriefHTML();
+      setPrintTitle('Supplier_Brief');
       document.body.dataset.print = 'supplier';
       setTimeout(() => window.print(), 50);
     }
-    window.onafterprint = () => { document.body.dataset.print = ''; };
+    window.onafterprint = () => {
+      document.body.dataset.print = '';
+      if (printPrevTitle !== null) { document.title = printPrevTitle; printPrevTitle = null; }
+    };
     function clearForm() {
       if (!confirm('Clear all entered data from this form?')) return;
       $('wcForm').reset();
@@ -1904,6 +2012,7 @@
     }
     function runReportPrint(sectionEls, title) {
       $('printReport').innerHTML = renderReportHTML(sectionEls, title);
+      setPrintTitle(title);
       document.body.dataset.print = 'report';
       setTimeout(() => window.print(), 50);
     }
@@ -1937,22 +2046,11 @@
     }
     function saveProgress() {
       const data = collectFormData();
-      const safeWard = (val('ward') || 'noward').replace(/[^a-z0-9]+/gi, '');
-      const rawName = (val('clientName') || 'client').trim();
-      const parts = rawName.split(/\s+/).filter(Boolean);
-      const surname = (parts.length > 1 ? parts[parts.length - 1] : parts[0] || 'client').replace(/[^a-z0-9]+/gi, '');
-      const firstName = (parts.length > 1 ? parts.slice(0, -1).join('_') : '').replace(/[^a-z0-9]+/gi, '_');
-      const nameSlug = firstName ? `${surname}_${firstName}` : surname;
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const saveDate = `${yy}${mm}${dd}`;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${safeWard}_${nameSlug}_${saveDate}.json`;
+      a.download = `${clientFileSlug()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
