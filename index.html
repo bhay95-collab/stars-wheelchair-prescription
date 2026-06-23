@@ -442,7 +442,7 @@
     .dimension-grid { grid-template-columns: 1fr !important; }
     .mat-grid > .span-3, .mat-grid > .span-4 { grid-column: span 12 !important; }
     .hero-grid { flex-direction: column; align-items: flex-start; }
-    .top-actions { justify-content: flex-start; flex-wrap: wrap; }
+    .top-actions { flex: none; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
     .part-rail { position: static; max-height: none; flex-direction: row; flex-wrap: wrap; gap: 8px; border-radius: var(--radius) !important; }
     .part-rail .rail-title, .part-rail .rail-note { width: 100%; }
     .nav-item { width: auto; flex: 1 1 240px; }
@@ -518,7 +518,10 @@
     position: relative;
     min-height: 126px;
     padding: 18px 20px;
-    overflow: hidden;
+    /* The action menus need to escape the header, and the rounded background
+       still clips cleanly to the element's own border radius. */
+    overflow: visible;
+    isolation: isolate;
     border: 0;
     color: #fff;
     background-color: #073a57;
@@ -528,7 +531,9 @@
       url("assets/stars-brand-banner.jpg"),
       linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
     background-repeat: no-repeat;
-    background-size: 100% 100%, cover, 100% 100%;
+    /* Crop the white production border built into the supplied banner so the
+       coloured artwork reaches every edge of the header. */
+    background-size: 100% 100%, 120% 120%, 100% 100%;
     background-position: center, center, center;
     box-shadow: 0 4px 18px rgba(6, 47, 69, 0.18);
   }
@@ -539,12 +544,40 @@
   .hero .subtitle { color: rgba(255,255,255,0.88); text-shadow: 0 1px 2px rgba(0, 20, 43, 0.22); }
   .hero .usage-link { color: #fff; opacity: 0.86; }
   .hero .usage-link:hover { color: #fff; }
-  .top-actions { position: relative; z-index: 1; }
+  .top-actions {
+    position: relative;
+    z-index: 2;
+    flex: 0 1 720px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
   .hero .action-group { border-color: rgba(255,255,255,0.32); }
+  .hero .dropdown.is-open { z-index: 3; }
 
-  /* ── Buttons: gradient primary, refined feedback ── */
-  .btn.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-color: var(--accent); }
-  .btn.primary:hover { background: linear-gradient(180deg, var(--accent), var(--accent-dark)); }
+  /* ── Header actions: white is the high-contrast brand action on teal ── */
+  .hero .btn.primary {
+    background: #fff;
+    border-color: #fff;
+    color: #073a57;
+    box-shadow: 0 2px 8px rgba(0, 20, 43, 0.2);
+  }
+  .hero .btn.primary:hover {
+    background: #e8f4f5;
+    border-color: #e8f4f5;
+    color: #052c43;
+    box-shadow: 0 5px 18px rgba(0, 20, 43, 0.26);
+  }
+  .hero .btn.primary.ghost {
+    background: rgba(0, 38, 61, 0.22);
+    border-color: rgba(255,255,255,0.58);
+    color: #fff;
+    box-shadow: none;
+  }
+  .hero .btn.primary.ghost:hover {
+    background: rgba(0, 38, 61, 0.38);
+    border-color: #fff;
+    color: #fff;
+  }
   .btn:focus-visible, .nav-item:focus-visible, .dropdown-item:focus-visible,
   .section-toggle:focus-visible, .usage-link:focus-visible { outline: none; box-shadow: var(--ring-focus); }
 
