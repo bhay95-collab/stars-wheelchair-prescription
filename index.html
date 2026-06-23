@@ -58,6 +58,7 @@
     z-index: 100;
     border-bottom: none;
     backdrop-filter: none;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .hero-grid {
     max-width: 1900px;
@@ -442,7 +443,8 @@
     .dimension-grid { grid-template-columns: 1fr !important; }
     .mat-grid > .span-3, .mat-grid > .span-4 { grid-column: span 12 !important; }
     .hero-grid { flex-direction: column; align-items: flex-start; }
-    .top-actions { flex: none; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+    .top-actions { flex: none; width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+    .top-actions::-webkit-scrollbar { display: none; }
     .part-rail { position: static; max-height: none; flex-direction: row; flex-wrap: wrap; gap: 8px; border-radius: var(--radius) !important; }
     .part-rail .rail-title, .part-rail .rail-note { width: 100%; }
     .nav-item { width: auto; flex: 1 1 240px; }
@@ -467,6 +469,21 @@
   }
   @media (max-width: 620px) {
     .power-addon-panel .check-grid, .propulsion-panel .check-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Small screen: compact header */
+  @media (max-width: 768px) {
+    .hero .subtitle, .hero .usage-link { display: none; }
+    .hero-grid { min-height: auto !important; padding: 12px 14px !important; }
+  }
+
+  /* ── Hide header on scroll down, show on scroll up (sticky mode only) */
+  @media (min-width: 821px) {
+    .hero.hero--hidden { transform: translateY(-110%); }
+    .sidebar { transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+    .part-rail { transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+    .hero.hero--hidden ~ .app .sidebar { top: 14px !important; max-height: calc(100vh - 28px) !important; }
+    .hero.hero--hidden ~ .app .part-rail { top: 14px !important; max-height: calc(100vh - 28px) !important; }
   }
 
   @media print {
@@ -2139,6 +2156,27 @@
     $('wcForm').addEventListener('input', updateAll);
     $('wcForm').addEventListener('change', updateAll);
     initialiseFormState();
+
+    // Hide header on scroll down, reveal on scroll up
+    (function() {
+      var hero = document.querySelector('.hero');
+      var lastY = 0, ticking = false;
+      function update() {
+        var y = window.scrollY;
+        if (getComputedStyle(hero).position === 'sticky') {
+          if (y > lastY && y > 120) {
+            hero.classList.add('hero--hidden');
+          } else {
+            hero.classList.remove('hero--hidden');
+          }
+        }
+        lastY = y;
+        ticking = false;
+      }
+      window.addEventListener('scroll', function() {
+        if (!ticking) { requestAnimationFrame(update); ticking = true; }
+      }, { passive: true });
+    })();
 
 </script>
 </body>
