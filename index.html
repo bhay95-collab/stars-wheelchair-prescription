@@ -479,13 +479,157 @@
     body[data-print="report"] #printReport { display: block; padding: 0; margin: 0; max-width: none; }
     body[data-print="report"] { background: white; }
   }
+
+  /* ════════════════ PREMIUM CLINICAL ENHANCEMENT LAYER ════════════════ */
+  /* Additive polish over Soft Structuralism. Blue locked. No new hues outside the accent family. */
+  :root {
+    --accent-2: #2E7BC4;
+    --accent-3: #5BA3DC;
+    --bg: #E7EFF7;
+    --shadow: 0 1px 2px rgba(18,64,112,0.05), 0 5px 12px rgba(18,64,112,0.05), 0 20px 46px rgba(18,64,112,0.07);
+    --shadow-sm: 0 1px 2px rgba(18,64,112,0.05), 0 4px 14px rgba(18,64,112,0.06);
+    --ring-focus: 0 0 0 3px rgba(26,90,153,0.16);
+  }
+
+  /* ── Atmosphere: subtle blue depth + faint clinical grid behind the panels ── */
+  body { background: var(--bg); }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(1100px 560px at 82% -10%, rgba(26,90,153,0.07), transparent 58%),
+      radial-gradient(820px 480px at -6% 108%, rgba(26,90,153,0.055), transparent 55%),
+      radial-gradient(rgba(14,42,70,0.04) 1px, transparent 1.4px);
+    background-size: auto, auto, 24px 24px;
+  }
+
+  /* ── Header command bar ── */
+  .hero-grid { position: relative; }
+  .hero-grid::before {
+    content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-3));
+    border-radius: 2px; opacity: 0.85;
+  }
+  .brand-block { min-width: 0; }
+  .brand-lockup { display: flex; align-items: center; gap: 11px; }
+  .brand-mark {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(150deg, var(--accent-2), var(--accent-dark));
+    box-shadow: 0 4px 12px rgba(18,64,112,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+    position: relative;
+  }
+  .brand-mark::before {
+    content: ""; position: absolute; inset: 0; margin: auto; width: 15px; height: 15px;
+    background:
+      linear-gradient(#fff,#fff) center / 15px 4.5px no-repeat,
+      linear-gradient(#fff,#fff) center / 4.5px 15px no-repeat;
+    border-radius: 1px; opacity: 0.96;
+  }
+
+  /* ── Buttons: gradient primary, refined feedback ── */
+  .btn.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-color: var(--accent); }
+  .btn.primary:hover { background: linear-gradient(180deg, var(--accent), var(--accent-dark)); }
+  .btn:focus-visible, .nav-item:focus-visible, .dropdown-item:focus-visible,
+  .section-toggle:focus-visible, .usage-link:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+  /* ── Section cards: material depth + restrained reveal ── */
+  .card, .section {
+    background: linear-gradient(180deg, rgba(18,64,112,0.045), rgba(18,64,112,0.02));
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.4s var(--ease-out);
+  }
+  .section:not(.is-collapsed):hover { box-shadow: var(--shadow); }
+  .section-header { background: linear-gradient(180deg, #fff, var(--bg-2)) !important; }
+  .phase-chip { background: linear-gradient(180deg, rgba(26,90,153,0.11), rgba(26,90,153,0.05)); }
+  .subcard { box-shadow: var(--shadow-sm); }
+  .subcard-head { background: linear-gradient(180deg, #fff, var(--bg-2)); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .section:not(.is-collapsed) { animation: secReveal 0.5s var(--ease-out) both; }
+    @keyframes secReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+
+  /* ── Inputs: hover affordance + stronger focus ── */
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background 0.2s var(--ease-out);
+  }
+  input:hover, select:hover, textarea:hover { border-color: rgba(26,90,153,0.28); }
+  input:focus, select:focus, textarea:focus { box-shadow: var(--ring-focus) !important; background: #fff; }
+
+  /* ── Left rail: completion ring + clinical progress spine ── */
+  .rail-progress { display: flex; align-items: center; gap: 12px; padding: 4px 8px 14px; }
+  .rail-progress .ring { transform: rotate(-90deg); flex: 0 0 auto; }
+  .ring-track { fill: none; stroke: rgba(26,90,153,0.14); stroke-width: 4; }
+  .ring-fill { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.6s var(--ease-out); }
+  .rail-progress-text { display: flex; flex-direction: column; line-height: 1.15; }
+  .rp-count { font-weight: 800; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
+  .rp-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+
+  #partNav { position: relative; }
+  #partNav::before {
+    content: ""; position: absolute; left: 15px; top: 14px; bottom: 14px; width: 2px;
+    background: rgba(26,90,153,0.13); border-radius: 2px;
+  }
+  #partNav::after {
+    content: ""; position: absolute; left: 15px; top: 14px; width: 2px; border-radius: 2px;
+    height: calc((100% - 28px) * var(--rail-progress, 0));
+    background: linear-gradient(var(--accent), var(--accent-2));
+    transition: height 0.6s var(--ease-out);
+  }
+  .nav-dot { position: relative; z-index: 1; box-shadow: 0 0 0 4px var(--panel); }
+  .nav-dot[data-state="filled"]::after {
+    content: ""; position: absolute; left: 3px; top: 1px; width: 2.5px; height: 5px;
+    border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg);
+  }
+  .nav-item.is-active .nav-dot { box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px rgba(26,90,153,0.18); }
+
+  /* ── Guidance: live status + risk-tier accent bars ── */
+  .live-head { display: flex !important; align-items: center; gap: 7px; }
+  .live-head::before {
+    content: ""; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--good);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .live-head::before { animation: livePulse 2.4s var(--ease-out) infinite; }
+    @keyframes livePulse {
+      0% { box-shadow: 0 0 0 0 rgba(12,122,82,0.45); }
+      70% { box-shadow: 0 0 0 7px rgba(12,122,82,0); }
+      100% { box-shadow: 0 0 0 0 rgba(12,122,82,0); }
+    }
+  }
+  .guidance-card { position: relative; padding-left: 16px; }
+  .guidance-card::before {
+    content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+    border-radius: 3px; background: var(--accent); opacity: 0.5;
+  }
+  .guidance-card.risk-high::before { background: var(--danger); opacity: 0.8; }
+  .guidance-card.risk-mod::before { background: var(--warn); opacity: 0.8; }
+  .guidance-card.risk-low::before { background: var(--good); opacity: 0.7; }
+
+  /* ── Scrollbars ── */
+  * { scrollbar-width: thin; scrollbar-color: rgba(26,90,153,0.28) transparent; }
+  .sidebar::-webkit-scrollbar, .part-rail::-webkit-scrollbar, .brief-preview::-webkit-scrollbar,
+  #guidanceOutput::-webkit-scrollbar { width: 9px; height: 9px; }
+  .sidebar::-webkit-scrollbar-thumb, .part-rail::-webkit-scrollbar-thumb,
+  .brief-preview::-webkit-scrollbar-thumb, #guidanceOutput::-webkit-scrollbar-thumb {
+    background: rgba(26,90,153,0.22); border-radius: 9px; border: 2px solid transparent; background-clip: padding-box;
+  }
+  .sidebar::-webkit-scrollbar-thumb:hover { background: rgba(26,90,153,0.4); background-clip: padding-box; }
+
+  /* ── Collapsed side bars: intentional, premium ── */
+  .part-rail.is-collapsed, .sidebar.is-collapsed { background: linear-gradient(180deg, #fff, var(--bg-2)) !important; }
+  .part-rail.is-collapsed .panel-toggle, .sidebar.is-collapsed .panel-toggle { color: var(--accent) !important; font-weight: 800 !important; }
+
+  /* ── Keep print clean ── */
+  @media print {
+    body::before { display: none !important; }
+    .section:not(.is-collapsed) { animation: none !important; }
+  }
 </style>
 </head>
 <body>
 <header class="hero">
 <div class="hero-grid">
-<div>
-<h1>Wheelchair Prescription Assessment Tool</h1>
+<div class="brand-block">
+<div class="brand-lockup"><span class="brand-mark" aria-hidden="true"></span><h1>Wheelchair Prescription Assessment Tool</h1></div>
 <p class="subtitle">A standalone assessment form for clinicians. This is decision support only - confirm recommendations through trial, senior clinical review and supplier product specifications.</p>
 <button class="usage-link" onclick="openUsageModal()" type="button">How to use this tool</button>
 </div>
@@ -517,6 +661,13 @@
 <main class="app rail-collapsed aside-collapsed">
 <nav class="part-rail is-collapsed" id="partRail" aria-label="Assessment parts">
 <button class="panel-toggle rail-toggle" type="button" onclick="toggleRail()" aria-expanded="false" title="Hide / show navigation"><span class="pt-glyph">‹</span><span class="pt-label">Parts</span></button>
+<div class="rail-progress" id="railProgress">
+<svg class="ring" viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
+<circle class="ring-track" cx="22" cy="22" r="18"></circle>
+<circle class="ring-fill" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="113.1"></circle>
+</svg>
+<div class="rail-progress-text"><span class="rp-count" id="railProgressCount">0 of 6</span><span class="rp-label">parts started</span></div>
+</div>
 <div class="rail-title">Assessment parts</div>
 <div id="partNav"></div>
 <div class="rail-note">Filled parts show a green dot. Open one part at a time; use “Show all sections” in the toolbar to expand everything.</div>
@@ -916,7 +1067,7 @@
 <aside class="sidebar is-collapsed" id="rightSidebar">
 <button class="panel-toggle aside-toggle" type="button" onclick="toggleAside()" aria-expanded="false" title="Hide / show guidance panel"><span class="pt-glyph">›</span><span class="pt-label">Guidance</span></button>
 <div class="side-card">
-<h3>Live clinical reasoning guidance</h3>
+<h3 class="live-head">Live clinical reasoning guidance</h3>
 <div class="side-body" id="guidanceOutput"></div>
 </div>
 <div class="side-card">
@@ -1556,6 +1707,21 @@
         const dot = item.querySelector('.nav-dot');
         if (sec && dot) dot.dataset.state = sectionHasContent(sec) ? 'filled' : 'empty';
       });
+      // Overall completion: ring + progress spine fill (parts started, honest N/total).
+      const sections = qsa('.section');
+      const total = sections.length || 6;
+      const started = sections.filter(sectionHasContent).length;
+      const frac = total ? started / total : 0;
+      const fill = document.querySelector('#railProgress .ring-fill');
+      if (fill) {
+        const circ = 2 * Math.PI * 18;
+        fill.setAttribute('stroke-dasharray', circ.toFixed(1));
+        fill.setAttribute('stroke-dashoffset', (circ * (1 - frac)).toFixed(1));
+      }
+      const count = $('railProgressCount');
+      if (count) count.textContent = `${started} of ${total}`;
+      const nav = $('partNav');
+      if (nav) nav.style.setProperty('--rail-progress', frac.toFixed(3));
     }
 
     function initialiseFormState() {
