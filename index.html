@@ -190,8 +190,19 @@
     padding: 10px 12px;
     background: var(--bg-2);
     color: var(--ink);
+    height: 42px;
     min-height: 42px;
     transition: border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+  }
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 40px;
+    line-height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4.5 6.5 3.5 3.5 3.5-3.5' stroke='%233A5068' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
   }
   textarea { min-height: 92px; resize: vertical; }
   .compact textarea { min-height: 62px; }
@@ -253,7 +264,7 @@
   .activity-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 13px; }
   .activity-table th { background: var(--bg); color: var(--ink-2); padding: 9px 10px; text-align: left; font-weight: 700; font-size: 12px; }
   .activity-table td { border-top: 1px solid var(--line); padding: 7px; vertical-align: top; }
-  .activity-table select { min-height: 36px; padding: 6px; border-radius: 9px; }
+  .activity-table select { height: 42px; min-height: 42px; padding: 10px 36px 10px 12px; border-radius: 9px; background-position: right 10px center; }
 
   /* ── SIDEBAR */
   .sidebar {
@@ -502,28 +513,34 @@
     background-size: auto, auto, 24px 24px;
   }
 
-  /* ── Header command bar ── */
-  .hero-grid { position: relative; }
-  .hero-grid::before {
-    content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-3));
-    border-radius: 2px; opacity: 0.85;
-  }
-  .brand-block { min-width: 0; }
-  .brand-lockup { display: flex; align-items: center; gap: 11px; }
-  .brand-mark {
-    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px;
-    background: linear-gradient(150deg, var(--accent-2), var(--accent-dark));
-    box-shadow: 0 4px 12px rgba(18,64,112,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+  /* ── Branded header ── */
+  .hero-grid {
     position: relative;
+    min-height: 126px;
+    padding: 18px 20px;
+    overflow: hidden;
+    border: 0;
+    color: #fff;
+    background-color: #073a57;
+    /* Work brand banner. */
+    background-image:
+      linear-gradient(90deg, rgba(0, 27, 54, 0.46) 0%, rgba(0, 32, 54, 0.18) 45%, rgba(0, 32, 54, 0.06) 100%),
+      url("assets/stars-brand-banner.jpg"),
+      linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
+    background-repeat: no-repeat;
+    background-size: 100% 100%, cover, 100% 100%;
+    background-position: center, center, center;
+    box-shadow: 0 4px 18px rgba(6, 47, 69, 0.18);
   }
-  .brand-mark::before {
-    content: ""; position: absolute; inset: 0; margin: auto; width: 15px; height: 15px;
-    background:
-      linear-gradient(#fff,#fff) center / 15px 4.5px no-repeat,
-      linear-gradient(#fff,#fff) center / 4.5px 15px no-repeat;
-    border-radius: 1px; opacity: 0.96;
-  }
+  .hero-grid::before { content: none; }
+  .brand-block { min-width: 0; position: relative; z-index: 1; }
+  .brand-lockup { display: flex; align-items: center; }
+  .hero h1 { color: #fff; text-shadow: 0 1px 2px rgba(0, 20, 43, 0.28); }
+  .hero .subtitle { color: rgba(255,255,255,0.88); text-shadow: 0 1px 2px rgba(0, 20, 43, 0.22); }
+  .hero .usage-link { color: #fff; opacity: 0.86; }
+  .hero .usage-link:hover { color: #fff; }
+  .top-actions { position: relative; z-index: 1; }
+  .hero .action-group { border-color: rgba(255,255,255,0.32); }
 
   /* ── Buttons: gradient primary, refined feedback ── */
   .btn.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-color: var(--accent); }
@@ -553,7 +570,7 @@
     transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background 0.2s var(--ease-out);
   }
   input:hover, select:hover, textarea:hover { border-color: rgba(26,90,153,0.28); }
-  input:focus, select:focus, textarea:focus { box-shadow: var(--ring-focus) !important; background: #fff; }
+  input:focus, select:focus, textarea:focus { box-shadow: var(--ring-focus) !important; background-color: #fff; }
 
   /* ── Left rail: completion ring + clinical progress spine ── */
   .rail-progress { display: flex; align-items: center; gap: 12px; padding: 4px 8px 14px; }
@@ -629,7 +646,7 @@
 <header class="hero">
 <div class="hero-grid">
 <div class="brand-block">
-<div class="brand-lockup"><span class="brand-mark" aria-hidden="true"></span><h1>Wheelchair Prescription Assessment Tool</h1></div>
+<div class="brand-lockup"><h1>Wheelchair Prescription Assessment Tool</h1></div>
 <p class="subtitle">A standalone assessment form for clinicians. This is decision support only - confirm recommendations through trial, senior clinical review and supplier product specifications.</p>
 <button class="usage-link" onclick="openUsageModal()" type="button">How to use this tool</button>
 </div>
