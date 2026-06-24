@@ -533,25 +533,15 @@
   /* ── Branded header ── */
   .hero-grid {
     position: relative;
-    min-height: 126px;
     padding: 18px 20px;
-    /* The action menus need to escape the header, and the rounded background
-       still clips cleanly to the element's own border radius. */
     overflow: visible;
     isolation: isolate;
     border: 0;
     color: #fff;
-    background-color: #073a57;
-    /* Work brand banner. */
-    background-image:
-      linear-gradient(90deg, rgba(0, 27, 54, 0.46) 0%, rgba(0, 32, 54, 0.18) 45%, rgba(0, 32, 54, 0.06) 100%),
-      url("assets/stars-brand-banner.jpg"),
-      linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
+    background-image: linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
     background-repeat: no-repeat;
-    /* Crop the white production border built into the supplied banner so the
-       coloured artwork reaches every edge of the header. */
-    background-size: 100% 100%, 120% 120%, 100% 100%;
-    background-position: center, center, center;
+    background-size: 100% 100%;
+    background-position: center;
     box-shadow: 0 4px 18px rgba(6, 47, 69, 0.18);
   }
   .hero-grid::before { content: none; }
