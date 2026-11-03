@@ -548,17 +548,12 @@
     isolation: isolate;
     border: 0;
     color: #fff;
-    background-color: #073a57;
-    /* Work brand banner. */
-    background-image:
-      linear-gradient(90deg, rgba(0, 27, 54, 0.46) 0%, rgba(0, 32, 54, 0.18) 45%, rgba(0, 32, 54, 0.06) 100%),
-      url("assets/stars-brand-banner.jpg"),
-      linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
+    background-color: #075f73;
+    /* Header gradient as an SVG (preserveAspectRatio none) so it fills any size without distortion. */
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='80' viewBox='0 0 400 80' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23001D46'/%3E%3Cstop offset='0.48' stop-color='%23075F73'/%3E%3Cstop offset='1' stop-color='%2300838A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='80' fill='url(%23a)'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    /* Crop the white production border built into the supplied banner so the
-       coloured artwork reaches every edge of the header. */
-    background-size: 100% 100%, 120% 120%, 100% 100%;
-    background-position: center, center, center;
+    background-size: 100% 100%;
+    background-position: center;
     box-shadow: 0 4px 18px rgba(6, 47, 69, 0.18);
   }
   .hero-grid::before { content: none; }
