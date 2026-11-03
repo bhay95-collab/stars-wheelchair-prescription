@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Wheelchair Prescription Assessment Tool</title>
+<title>STARS Wheelchair Prescription and Workflow Tool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -402,6 +402,17 @@
   .usage-card .usage-body { padding: 0 20px 18px; color: var(--ink-2); font-size: 13.5px; line-height: 1.55; }
   .usage-card .usage-body p { margin: 8px 0; }
   .usage-card.is-collapsed .usage-body { display: none; }
+  code.fp {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.86em;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) { code.fp { white-space: normal; word-break: break-all; } }
   .usage-modal-overlay { position: fixed; inset: 0; background: rgba(14,28,42,0.45); backdrop-filter: blur(6px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .usage-modal-overlay[hidden] { display: none !important; }
   .usage-modal { background: white; border-radius: 20px; box-shadow: 0 24px 80px rgba(14,28,42,0.18); max-width: 640px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -477,13 +488,9 @@
     .hero-grid { min-height: auto !important; padding: 12px 14px !important; }
   }
 
-  /* ── Hide header on scroll down, show on scroll up (sticky mode only) */
+  /* ── Header and side rails stay locked in place while scrolling */
   @media (min-width: 821px) {
-    .hero.hero--hidden { transform: translateY(-110%); }
-    .sidebar { transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-    .part-rail { transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-    .hero.hero--hidden ~ .app .sidebar { top: 14px !important; max-height: calc(100vh - 28px) !important; }
-    .hero.hero--hidden ~ .app .part-rail { top: 14px !important; max-height: calc(100vh - 28px) !important; }
+    .hero { transform: none !important; }
   }
 
   @media print {
@@ -533,15 +540,25 @@
   /* ── Branded header ── */
   .hero-grid {
     position: relative;
+    min-height: 126px;
     padding: 18px 20px;
+    /* The action menus need to escape the header, and the rounded background
+       still clips cleanly to the element's own border radius. */
     overflow: visible;
     isolation: isolate;
     border: 0;
     color: #fff;
-    background-image: linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
+    background-color: #073a57;
+    /* Work brand banner. */
+    background-image:
+      linear-gradient(90deg, rgba(0, 27, 54, 0.46) 0%, rgba(0, 32, 54, 0.18) 45%, rgba(0, 32, 54, 0.06) 100%),
+      url("assets/stars-brand-banner.jpg"),
+      linear-gradient(100deg, #001d46 0%, #075f73 48%, #00838a 100%);
     background-repeat: no-repeat;
-    background-size: 100% 100%;
-    background-position: center;
+    /* Crop the white production border built into the supplied banner so the
+       coloured artwork reaches every edge of the header. */
+    background-size: 100% 100%, 120% 120%, 100% 100%;
+    background-position: center, center, center;
     box-shadow: 0 4px 18px rgba(6, 47, 69, 0.18);
   }
   .hero-grid::before { content: none; }
@@ -681,16 +698,387 @@
     .section:not(.is-collapsed) { animation: none !important; }
   }
 </style>
+
+<style>
+  /* ════════════════ COMBINED TOOL INTEGRATION LAYER ════════════════ */
+  .combined-title { cursor: default; user-select: none; }
+  .workflow-support-btn { flex-shrink: 0; }
+
+  .support-callout {
+    max-width: 1900px;
+    margin: 0 auto 4px;
+    padding: 0 12px;
+  }
+  .support-callout-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(255,255,255,0.82);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 12px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .support-callout strong { color: var(--ink); font-size: 13px; font-weight: 800; }
+  .support-callout p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .support-callout .btn { flex: 0 0 auto; }
+
+  body.workflow-active .app,
+  body.workflow-active .support-callout { display: none !important; }
+  body.workflow-active .prescription-only-action { display: none !important; }
+  body.workflow-active .workflow-support { display: grid !important; }
+
+  .workflow-support {
+    display: none;
+    max-width: none;
+    padding: 16px 12px 60px;
+    grid-template-columns: minmax(210px, 250px) minmax(0, 1fr) minmax(360px, 460px);
+    gap: 14px;
+    align-items: start;
+    width: 100%;
+  }
+
+  .wf-rail,
+  .wf-side {
+    position: sticky;
+    top: calc(58px + 14px);
+    max-height: calc(100vh - 88px);
+    overflow-y: auto;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 14px;
+  }
+  .wf-rail-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 2px 8px 8px;
+  }
+  .wf-group-label {
+    margin: 12px 8px 6px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+  .wf-group-label:first-of-type { margin-top: 4px; }
+  .wf-main { min-width: 0; }
+  .wf-intro-card,
+  .wf-phase-card {
+    background: rgba(14,28,42,0.025);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 3px;
+    box-shadow: none;
+    margin-bottom: 14px;
+  }
+  .wf-card-head {
+    background: linear-gradient(180deg, #fff, var(--bg-2));
+    border-bottom: 1px solid var(--line-soft);
+    border-radius: calc(var(--radius) - 3px) calc(var(--radius) - 3px) 0 0;
+    padding: 18px 20px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,1);
+  }
+  .wf-card-head h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
+  .wf-card-head p,
+  .wf-intro-card p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 88ch;
+    line-height: 1.55;
+  }
+  .wf-card-body {
+    background: var(--panel);
+    border-radius: 0 0 calc(var(--radius) - 3px) calc(var(--radius) - 3px);
+    padding: 18px 20px 22px;
+  }
+  .wf-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wf-toolbar-copy { min-width: 0; }
+  .wf-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .wf-steps {
+    display: grid;
+    gap: 10px;
+  }
+  .wf-step-card {
+    width: 100%;
+    text-align: left;
+    background: white;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 13px 14px;
+    cursor: pointer;
+    transition: transform 220ms var(--spring), box-shadow 220ms var(--ease-out), border-color 180ms var(--ease-out), background 180ms var(--ease-out);
+  }
+  .wf-step-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .wf-step-card.is-active {
+    background: var(--accent-soft);
+    border-color: rgba(26,90,153,0.22);
+    border-left-color: var(--accent-dark);
+    box-shadow: var(--shadow-sm);
+  }
+  .wf-step-card[data-type="decision"] { border-left-color: var(--warn); }
+  .wf-step-card[data-type="external"] { border-left-color: var(--accent-3); }
+  .wf-step-card[data-type="return"] { border-left-color: var(--good); }
+  .wf-step-card[data-type="tool"] { border-left-color: var(--accent-2); }
+  .wf-step-card h3 { margin: 0 0 5px; color: var(--ink); font-size: 14px; font-weight: 800; line-height: 1.25; }
+  .wf-step-card p { margin: 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
+  .wf-meta-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+  .wf-tag {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px 9px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(26,90,153,0.14);
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .wf-tag.ca { color: var(--good); background: var(--good-bg); border-color: rgba(12,122,82,0.16); }
+  .wf-tag.external { color: var(--warn); background: var(--warn-bg); border-color: rgba(122,88,0,0.14); }
+  .wf-tag.tool { color: var(--accent-dark); background: var(--accent-soft); border-color: rgba(26,90,153,0.18); }
+  .wf-connections {
+    margin-top: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .wf-connections h3,
+  .wf-side h3 {
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .wf-connections ul,
+  .wf-side ul { margin: 0; padding-left: 18px; }
+  .wf-connections li,
+  .wf-side li { margin: 5px 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+  .wf-key-note {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--warn-bg);
+    color: var(--warn);
+    border: 1px solid rgba(122,88,0,0.12);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .wf-key-note strong { color: var(--ink); }
+  .wf-detail-title {
+    margin: 0 0 4px;
+    color: var(--ink);
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .wf-detail-text {
+    margin: 8px 0 10px;
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .wf-side .side-card { margin-bottom: 12px; }
+  .wf-tool-jump { margin-top: 12px; }
+  .wf-all { display: none; }
+  .wf-all.is-visible { display: block; }
+  .wf-selected.is-hidden { display: none; }
+
+  .combined-footer {
+    max-width: 1900px;
+    margin: 8px auto 28px;
+    padding: 0 18px;
+    text-align: right;
+    color: rgba(58,80,104,0.48);
+    font-size: 11.5px;
+    line-height: 1.4;
+  }
+  body.workflow-active .combined-footer { margin-top: -36px; }
+
+  .easter-egg-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(14,28,42,0.50);
+    backdrop-filter: blur(7px);
+  }
+  .easter-egg-overlay[hidden] { display: none !important; }
+  .easter-egg-card {
+    width: min(760px, 94vw);
+    min-height: 330px;
+    border-radius: 34px;
+    padding: 34px;
+    position: relative;
+    overflow: hidden;
+    color: white;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(255,255,255,0.28), transparent 22%),
+      radial-gradient(circle at 88% 16%, rgba(91,163,220,0.45), transparent 30%),
+      linear-gradient(135deg, #001d46 0%, #1A5A9A 48%, #00838a 100%);
+    box-shadow: 0 28px 90px rgba(0,29,70,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+    animation: eggPop 380ms var(--spring) both;
+  }
+  .easter-egg-card::before {
+    content: "";
+    position: absolute;
+    right: -80px;
+    bottom: -90px;
+    width: 270px;
+    height: 270px;
+    border-radius: 50%;
+    border: 44px solid rgba(255,255,255,0.12);
+  }
+  .easter-egg-card::after {
+    content: "";
+    position: absolute;
+    left: -50px;
+    top: -80px;
+    width: 230px;
+    height: 170px;
+    transform: rotate(-18deg);
+    border-radius: 26px;
+    border: 2px solid rgba(255,255,255,0.24);
+  }
+  .egg-kicker {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #DDF7FF;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .egg-title {
+    position: relative;
+    z-index: 1;
+    margin: 24px 0 12px;
+    font-size: clamp(44px, 7vw, 82px);
+    line-height: .9;
+    font-weight: 900;
+    letter-spacing: -0.06em;
+    text-transform: uppercase;
+  }
+  .egg-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0;
+    color: rgba(255,255,255,0.88);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .egg-close {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.26);
+    background: rgba(255,255,255,0.14);
+    color: white;
+    cursor: pointer;
+    font-weight: 900;
+  }
+  @keyframes eggPop {
+    from { opacity: 0; transform: translateY(14px) scale(.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 1180px) {
+    .workflow-support { grid-template-columns: 1fr; }
+    .wf-rail, .wf-side { position: static; max-height: none; overflow: visible; }
+    .wf-rail { display: block; }
+  }
+  @media (max-width: 760px) {
+    .support-callout-inner { align-items: flex-start; flex-direction: column; }
+    .support-callout .btn { width: 100%; justify-content: center; }
+    .workflow-support { padding: 12px 10px 42px; }
+    .wf-card-head, .wf-card-body { padding-left: 16px; padding-right: 16px; }
+    .wf-toolbar { align-items: flex-start; }
+    .wf-toolbar-actions { width: 100%; }
+    .wf-toolbar-actions .btn { flex: 1 1 auto; justify-content: center; }
+    .combined-footer { text-align: center; }
+  }
+  @media print {
+    .support-callout,
+    .combined-footer,
+    .easter-egg-overlay { display: none !important; }
+    body[data-print] .workflow-support { display: none !important; }
+    body.workflow-active .app,
+    body.workflow-active .support-callout,
+    body.workflow-active .hero,
+    body.workflow-active .top-actions,
+    body.workflow-active .wf-rail,
+    body.workflow-active .wf-side,
+    body.workflow-active .wf-toolbar-actions { display: none !important; }
+    body.workflow-active .workflow-support {
+      display: block !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    body.workflow-active .wf-selected { display: none !important; }
+    body.workflow-active .wf-all { display: block !important; }
+    body.workflow-active .wf-phase-card,
+    body.workflow-active .wf-intro-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      box-shadow: none !important;
+      border-color: #b9c8d2;
+      margin-bottom: 10px;
+    }
+    body.workflow-active .wf-card-head,
+    body.workflow-active .wf-card-body { padding: 10px 12px; }
+    body.workflow-active .wf-step-card { box-shadow: none !important; break-inside: avoid; }
+  }
+</style>
+
 </head>
 <body>
 <header class="hero">
 <div class="hero-grid">
 <div class="brand-block">
-<div class="brand-lockup"><h1>Wheelchair Prescription Assessment Tool</h1></div>
-<p class="subtitle">A standalone assessment form for clinicians. This is decision support only - confirm recommendations through trial, senior clinical review and supplier product specifications.</p>
+<div class="brand-lockup"><h1 id="appTitle" class="combined-title">STARS Wheelchair Prescription Reasoning Tool</h1></div>
+<p class="subtitle">A standalone clinical reasoning tool for wheelchair prescription. Use “Need workflow support?” when you need the broader STARS inpatient assistive technology pathway.</p>
 <button class="usage-link" onclick="openUsageModal()" type="button">How to use this tool</button>
 </div>
 <div class="top-actions">
+<button class="btn primary ghost workflow-support-btn" id="workflowSupportBtn" onclick="toggleWorkflowSupport()" type="button">Need workflow support?</button>
 <div class="action-group">
 <button class="btn primary" onclick="saveProgress()" type="button">Save progress</button>
 <button class="btn primary ghost" onclick="triggerLoadProgress()" type="button">Load progress</button>
@@ -715,6 +1103,17 @@
 </div>
 </div>
 </header>
+
+<section class="support-callout" aria-label="Workflow support prompt">
+  <div class="support-callout-inner">
+    <div>
+      <strong>Need workflow support?</strong>
+      <p>Open the STARS inpatient assistive technology workflow if you need context for where prescription, trial, supplier engagement and discharge readiness fit.</p>
+    </div>
+    <button class="btn primary ghost" onclick="toggleWorkflowSupport(true)" type="button">Need workflow support?</button>
+  </div>
+</section>
+
 <main class="app rail-collapsed aside-collapsed">
 <nav class="part-rail is-collapsed" id="partRail" aria-label="Assessment parts">
 <button class="panel-toggle rail-toggle" type="button" onclick="toggleRail()" aria-expanded="false" title="Hide / show navigation"><span class="pt-glyph">‹</span><span class="pt-label">Parts</span></button>
@@ -1151,8 +1550,81 @@
 </div>
 </aside>
 </main>
+
+<section class="workflow-support" id="workflowSupport" hidden aria-label="STARS inpatient assistive technology workflow support">
+  <nav class="wf-rail" aria-label="Workflow phases">
+    <div class="wf-rail-title">Workflow support</div>
+    <div id="wfPhaseNav"></div>
+    <div class="rail-note">Select a phase to review the workflow. Select a step to see operational detail and handover considerations.</div>
+  </nav>
+
+  <main class="wf-main">
+    <article class="wf-intro-card">
+      <div class="wf-card-head wf-toolbar">
+        <div class="wf-toolbar-copy">
+          <span class="phase-chip">Support module</span>
+          <h2>STARS Inpatient Assistive Technology Workflow</h2>
+          <p>This workflow supports the prescription tool by showing the broader inpatient pathway from pre-admission planning through assessment, trial, sourcing, discharge readiness and return-to-stock.</p>
+        </div>
+        <div class="wf-toolbar-actions">
+          <button class="btn primary ghost" type="button" onclick="openPrescriptionPart('part4')">Return to prescription tool</button>
+          <button class="btn subtle" id="wfShowAllBtn" type="button" onclick="toggleWorkflowAll()">Show all phases</button>
+          <button class="btn minor" type="button" onclick="window.print()">Print workflow</button>
+        </div>
+      </div>
+    </article>
+    <div id="wfSelectedPhase" class="wf-selected"></div>
+    <div id="wfAllPhases" class="wf-all"></div>
+  </main>
+
+  <aside class="wf-side" aria-live="polite">
+    <div class="side-card">
+      <h3>Selected step detail</h3>
+      <div class="side-body">
+        <div id="wfDetailTags" class="wf-meta-row"></div>
+        <h2 id="wfDetailTitle" class="wf-detail-title"></h2>
+        <p id="wfDetailText" class="wf-detail-text"></p>
+        <ul id="wfDetailList"></ul>
+        <div id="wfToolJump" class="wf-tool-jump"></div>
+      </div>
+    </div>
+    <div class="side-card">
+      <h3>How to use this support view</h3>
+      <div class="side-body" style="font-size:13px;color:#3b4b5d;line-height:1.55;">
+        Use this view when the prescription pathway is unclear, when discharge timing is becoming a risk, or when you need to confirm which workflow step owns the next action.
+      </div>
+    </div>
+  </aside>
+</section>
+
+
+<footer class="combined-footer">Developed locally by Ben Hay · STARS Physiotherapy</footer>
+
+
+<div class="easter-egg-overlay" id="easterEggOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="easterEggTitle">
+  <div class="easter-egg-card">
+    <button class="egg-close" type="button" onclick="closeEasterEgg()" aria-label="Close easter egg">×</button>
+    <div class="egg-kicker">Hidden clinical bonus</div>
+    <div class="egg-title" id="easterEggTitle">STARS PT MODE ACTIVATED</div>
+    <p class="egg-copy">Clinical reasoning unlocked. Workflow wizardry quietly built by Ben Hay.</p>
+  </div>
+</div>
+
 <div id="printSupplier"></div>
 <div id="printReport"></div>
+<div class="usage-modal-overlay" id="otPromptModal" hidden role="dialog" aria-modal="true" aria-labelledby="otPromptTitle">
+<div class="usage-modal" style="max-width:520px">
+<div class="usage-modal-head">
+<h2 id="otPromptTitle">Before you start Part 2</h2>
+<button class="usage-modal-close" onclick="closeOtPrompt()" type="button" aria-label="Close">&#x2715;</button>
+</div>
+<div class="usage-modal-body">
+<p>Functional assessment, seated posture and MAT often sit across physio and OT scope.</p>
+<p><strong>Could this be a joint assessment?</strong> Consider whether an OT should be involved for the MAT and seated posture assessment — particularly where there is complex postural asymmetry, pressure care risk, upper limb function or equipment prescription overlap.</p>
+<div style="margin-top:16px"><button class="btn primary" onclick="closeOtPrompt()" type="button">Continue to Part 2</button></div>
+</div>
+</div>
+</div>
 <div class="usage-modal-overlay" id="usageModal" hidden role="dialog" aria-modal="true" aria-labelledby="usageModalTitle">
 <div class="usage-modal">
 <div class="usage-modal-head">
@@ -1161,8 +1633,10 @@
 </div>
 <div class="usage-modal-body">
 <p><strong>What this is.</strong> A structured clinical-reasoning aid for wheelchair and seating prescription. It is decision support, not a record in itself, and does not replace clinical judgement, trial, senior review or supplier specifications.</p>
+<p><strong>Self-reflection and support.</strong> This tool is designed to support clinical reasoning and self-reflection. Clinicians should consider the patient's presentation alongside their own capability to determine whether additional support from a Senior or Team Leader Physiotherapist may be beneficial, and which aspects of the tool are appropriate to complete.</p>
 <p><strong>When and by whom.</strong> Intended for the prescribing clinician across an admission. It is not a single-sitting form — complete sections as the assessment unfolds (measurements and MAT early, trial and supplier detail later). Sections start minimised to reduce overload; expand only the part you are working on.</p>
-<p><strong>Working across multiple clinicians.</strong> Use <strong>Save progress</strong> to export your entries as a file, and <strong>Load progress</strong> to reopen it (or hand it to a covering clinician). This supports continuity when the primary clinician is on leave or rotates out. Data stays on your device — nothing is uploaded.</p>
+<p><strong>Working across multiple clinicians.</strong> Use <strong>Save progress</strong> to export your entries as a file (save to <code class="fp">I:\AlliedHealth\Physiotherapy\11. Equipment\Equipment Prescription Tool</code>), and <strong>Load progress</strong> to reopen it from that same folder (or hand it to a covering clinician). This supports continuity when the primary clinician is on leave or rotates out. Data stays on your device — nothing is uploaded.</p>
+<p><strong>File naming.</strong> The filename is generated for you — <code class="fp">Ward_Surname_Firstname_YYMMDD</code>, taken from the Ward and Client name fields in Part 1 plus today's date (e.g. <code class="fp">4A_Petrie_Sarah_260903.json</code>). You don't need to type a name; just check the folder in the save dialog. Ward and Client name must both be filled before you can save — the tool will send you back to Part 1 if either is missing.</p>
 <p><strong>Documenting in iEMR.</strong> Use <strong>Create</strong> to generate the text for your records — "Create documentation to paste into medical record" produces a clean, ready-to-paste summary of everything entered so far (only completed fields are included), and "Create vendor email template" produces the supplier-facing brief. This is the intended way to get information from this tool into iEMR. Printing remains available under <strong>Print options</strong> if a hard copy is needed for a specific purpose, but it is not the primary documentation pathway.</p>
 <p><strong>Auto-calculated dimensions</strong> are starting points only — always check against posture, pressure care, transfers, propulsion and supplier measurement conventions, and confirm at trial.</p>
 <p><strong>How this maps to the Equipment Workflow.</strong> The six Parts follow the phases of the STARS Equipment Workflow tool — each Part header shows its matching workflow phase, so the two tools can be used side by side.</p>
@@ -1686,6 +2160,7 @@
       if (!section) return;
       activeSectionId = section.id;
       applySectionVisibility();
+      if (section.id === 'part2' && typeof openOtPrompt === 'function') openOtPrompt();
     }
     function setAllSectionsCollapsed() { applySectionVisibility(); }
     function toggleShowAll(btn) {
@@ -1956,6 +2431,22 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('usageModal') && !$('usageModal').hidden) closeUsageModal(); });
     $('usageModal')?.addEventListener('click', e => { if (e.target === $('usageModal')) closeUsageModal(); });
 
+    // ---- Part 2 OT joint-assessment prompt (once per session) ----
+    let otPromptShown = false;
+    function openOtPrompt() {
+      const modal = $('otPromptModal');
+      if (!modal || otPromptShown) return;
+      otPromptShown = true;
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+    function closeOtPrompt() {
+      const modal = $('otPromptModal');
+      if (modal) { modal.hidden = true; document.body.style.overflow = ''; }
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('otPromptModal') && !$('otPromptModal').hidden) closeOtPrompt(); });
+    $('otPromptModal')?.addEventListener('click', e => { if (e.target === $('otPromptModal')) closeOtPrompt(); });
+
     // ---- Clean printing (skips blank fields, unticked boxes, placeholders) ----
     function humaniseName(name) {
       return name
@@ -2102,6 +2593,28 @@
       return data;
     }
     function saveProgress() {
+      // Ward and Client name drive the filename — block saving without them,
+      // otherwise the file lands in the shared folder as noward_client_YYMMDD.
+      const missing = [];
+      if (!val('clientName')) missing.push('Client name');
+      if (!val('ward')) missing.push('Ward');
+      if (missing.length) {
+        alert(
+          'Cannot save yet — ' + missing.join(' and ') + ' ' +
+          (missing.length > 1 ? 'are' : 'is') + ' required.\n\n' +
+          'The saved filename is built from Ward and Client name, so without them the file ' +
+          'cannot be identified by anyone picking up the assessment.\n\n' +
+          'Part 1 has been opened for you.'
+        );
+        const part1 = $('part1');
+        if (part1) {
+          if (typeof openSection === 'function') openSection(part1);
+          part1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        const focusId = !val('clientName') ? 'clientName' : 'ward';
+        setTimeout(() => { const f = $(focusId); if (f) f.focus(); }, 350);
+        return;
+      }
       const data = collectFormData();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -2147,27 +2660,305 @@
     $('wcForm').addEventListener('change', updateAll);
     initialiseFormState();
 
-    // Hide header on scroll down, reveal on scroll up
-    (function() {
-      var hero = document.querySelector('.hero');
-      var lastY = 0, ticking = false;
-      function update() {
-        var y = window.scrollY;
-        if (getComputedStyle(hero).position === 'sticky') {
-          if (y > lastY && y > 120) {
-            hero.classList.add('hero--hidden');
-          } else {
-            hero.classList.remove('hero--hidden');
-          }
-        }
-        lastY = y;
-        ticking = false;
-      }
-      window.addEventListener('scroll', function() {
-        if (!ticking) { requestAnimationFrame(update); ticking = true; }
-      }, { passive: true });
-    })();
+    // Header and side rails are locked in place — no scroll-based hide/reposition.
 
 </script>
+
+<script>
+  // ════════════════ Combined tool controller + workflow support module ════════════════
+  const wfPhaseGroups = [
+  {label:'Planning', id:'planning', phases:[0]},
+  {label:'Clinical rehabilitation pathway', id:'middle', phases:[1,2,3]},
+  {label:'Discharge pathway', id:'discharge', phases:[4,5,6]}
+];
+
+const wfPhases = [
+  {
+    num:'1',
+    title:'Pre-admission planning',
+    summary:'Anticipate likely AT need before arrival.',
+    purpose:'Use referral information, diagnosis and anticipated function to flag likely assistive technology needs before the patient arrives. This is preparation only; the patient-specific decision is confirmed after assessment.',
+    links:['Feeds into admission assessment and early trial preparation.','Pre-admission assumptions must be checked against observed function after arrival.'],
+    note:'Prepare early where predictable complexity may otherwise delay inpatient assessment, trial or sourcing.',
+    steps:[
+      {type:'', title:'Review incoming patient profile', text:'Review referral information for likely mobility, seating, pressure-care, transfer and safety needs.', roles:['PT'], detail:'The aim is to anticipate equipment risk without prescribing before assessment.', list:['Review diagnosis, anticipated functional status and referral details.','Identify likely mobility aid, wheelchair, seating, cushion, transfer or pressure-care needs.','Consider size, weight capacity, pressure care and safety risks.','Flag likely complexity for admission planning.']},
+      {type:'decision', title:'Likely AT complexity?', text:'Decide whether the patient is likely to be managed with standard STARS fleet items or whether early sourcing may be needed.', roles:['PT'], detail:'This determines whether routine admission assessment is enough or whether the treating team should begin preparing options earlier.', list:['Standard/simple: prepare to assess and trial existing STARS fleet after admission.','Potentially complex: check likely size, SWL, seating, pressure-care or transfer requirements.','If specialised input may be required, discuss early with the relevant team leader or technical pathway.','Record any likely equipment delay for admission planning.']},
+      {type:'external', title:'Check broad stock or sourcing options', text:'Where need is predictable, check whether suitable STARS stock, hire or supplier trial options may exist.', roles:['PT','External'], detail:'This is a preparation step, not an allocation step.', list:['Check broad availability of likely item type, size and SWL.','Identify possible supplier trial or hire options if a standard item is unlikely to be enough.','Do not reserve or allocate before patient-specific assessment confirms suitability.','Bring likely constraints into admission planning.']}
+    ]
+  },
+  {
+    num:'2',
+    title:'Initial assessment and admission equipment',
+    summary:'Assess current function and immediate inpatient AT needs.',
+    purpose:'The initial physiotherapy assessment identifies what equipment is required on admission for safe mobility, positioning, therapy participation and ward function.',
+    links:['Confirms or corrects pre-admission expectations.','Feeds directly into inpatient trial, fitting, allocation and documentation.'],
+    note:'Keep this phase focused on current admission needs. Discharge AT reasoning is handled in the next phase.',
+    steps:[
+      {type:'', title:'Initial physiotherapy assessment', text:'Assess mobility, transfers, seating, posture, pressure-care requirements, functional capacity and safety.', roles:['PT'], detail:'This step converts expected need into observed patient-specific equipment requirements for the current admission.', list:['Assess mobility and transfers.','Assess seating, posture and wheelchair needs if relevant.','Assess pressure-care interface needs.','Assess safety risks that influence equipment selection and ward use.']},
+      {type:'decision', title:'Immediate AT required on admission?', text:'Decide what is needed now for safe mobility, positioning, therapy participation or ward function.', roles:['PT'], detail:'The decision should be specific enough to allow safe trial and allocation.', list:['Specify item type, size, accessories and weight capacity.','Decide whether a standard STARS fleet item can be trialled.','If immediate needs are complex, discuss the pathway with the team leader or relevant technical support.','Document the clinical rationale in the patient record as appropriate.']},
+      {type:'decision', title:'Can current needs be met safely?', text:'Confirm whether the patient can use available inpatient AT safely, or whether an alternative pathway is required.', roles:['PT','CA'], detail:'If the current item does not fit the patient or the clinical task, it should not be treated as suitable simply because it is available.', list:['If suitable: fit, trial and allocate.','If not suitable: seek alternative STARS fleet item, hire, supplier trial or technical pathway.','Use CA support for setup or handling only within delegated scope.','Reassess after clinical or functional change.']}
+    ]
+  },
+  {
+    num:'3',
+    title:'AT clinical reasoning during rehabilitation',
+    summary:'Use rehabilitation progress to anticipate discharge AT and funding needs.',
+    purpose:'During rehabilitation, the treating team should regularly revisit what assistive technology is likely to be required for hospital discharge, what follow-up is needed, and which timeframes or funding pathways will influence prescription.',
+    links:['Builds the reasoning base for later prescription and vendor communication.','Separates foundational discharge reasoning from immediate admission equipment decisions.'],
+    note:'This phase is deliberately question-based. The answers should mature as function, goals and discharge planning become clearer.',
+    steps:[
+      {type:'note', title:'Probing questions for hospital discharge AT', text:'Use structured questions to identify likely discharge AT, hire needs and whether definitive AT will be required.', roles:['PT'], detail:'These questions help keep AT planning active during rehabilitation rather than waiting until discharge is imminent.', list:['What AT is anticipated for hospital discharge?','What hire will be required for discharge?','Is hire AT available for discharge, or will the patient require their definitive AT?','Which items are essential for safe discharge and which are non-blocking?']},
+      {type:'note', title:'Follow-up and funding questions', text:'Clarify post-discharge follow-up options and possible funding sources early enough to influence trial timing.', roles:['PT','External'], detail:'Funding and follow-up pathways can change what evidence, quotes and documentation are needed.', list:['What are the follow-up options for AT after discharge?','What are the possible funding sources?','What factors influence AT prescription, such as NDIS HDAF due date or EDD?','Who needs to receive updates: patient, family, support coordinator, supplier, funder or case manager?']},
+      {type:'decision', title:'NDIS access and HDAF timing', text:'Where the MDT identifies a patient as appropriate to apply for NDIS access, confirm the HDAF date and plan trials around it.', roles:['PT','External'], detail:'For NDIS access planning, AT trials and quotes should be timed so the planning meeting is not delayed by missing evidence.', list:['Confirm the HDAF date for patients the MDT identifies as appropriate for NDIS access.','Trials should commence with the patient 2-3 weeks prior to the HDAF due date.','Aim to receive quotes for both hire and definitive AT prior to the planning meeting.','Planning meetings are usually 1-2 weeks after HDAF submission.']},
+      {type:'decision', title:'Review clinical reasoning as function changes', text:'Update AT reasoning when goals, function, discharge environment or carer support changes.', roles:['PT'], detail:'The discharge AT plan should reflect the patient’s current and expected function, not an outdated early-admission assumption.', list:['Review gait, transfers, seating/posture, pressure care and safety.','Check whether current inpatient trial findings remain relevant.','Clarify whether interim or definitive AT is now more likely.','Escalate uncertainty early if timing or funding constraints may affect discharge planning.']}
+    ]
+  },
+  {
+    num:'4',
+    title:'Trial, allocation and documentation',
+    summary:'Trial, fit, allocate and document inpatient AT.',
+    purpose:'Use assessment findings and rehabilitation reasoning to trial suitable equipment, allocate it if appropriate, and document both the clinical decision and the equipment status.',
+    links:['May loop back to reassessment when function changes.','Trial findings provide evidence for discharge prescription if ongoing AT is needed.','Returned or swapped items enter the CA cleaning and safety pathway before reuse.'],
+    note:'A returned item is not automatically available. It remains out of circulation until cleaning, safety check and Master List clearance are complete.',
+    steps:[
+      {type:'decision', title:'Suitable item available and clinically appropriate?', text:'Decide whether a STARS fleet item is suitable for trial or allocation.', roles:['PT'], detail:'Confirm that equipment is physically available, safe to use, correctly sized and clinically appropriate before allocation.', list:['Check item type, size, accessories and SWL.','Confirm the item meets clinical goals and safety needs.','If suitable: fit, trial and allocate.','If not suitable: consider supplier trial, hire, loan or technical pathway.']},
+      {type:'', title:'Fit, trial and adjust', text:'Fit the item to the patient, trial function and adjust setup based on observed performance.', roles:['PT','CA'], detail:'The PT owns the clinical decision. CA input may support setup, handling and adjustment when delegated appropriately.', list:['Fit and adjust height, seating, cushion, backrest and accessories as relevant.','Trial mobility, transfers, posture, pressure care and safety.','Record what worked, what failed and what needs changing.','Use trial findings to inform discharge prescription where ongoing AT is likely.']},
+      {type:'', title:'Document allocation', text:'Document the allocated equipment in ieMR and update the Master List for each item.', roles:['PT'], detail:'Documentation should make the current equipment state clear: what item the patient has, who prescribed it and whether it is still current.', list:['Record equipment in ieMR Interactive View > Rehabilitation Episode > Equipment List.','Record equipment code/model and prescriber details.','Update Master List with patient details against each allocated item.','Complete required AutoText or clinical documentation as appropriate.']},
+      {type:'decision', title:'Equipment changed, swapped or no longer needed?', text:'If function changes, reassess. New equipment may be allocated while returned equipment enters the return-to-stock pathway.', roles:['PT','CA'], detail:'The patient may have multiple items or sequential items during admission. Each returned item is cleared individually.', list:['Reassess why the item is no longer suitable.','Allocate a replacement item if clinically needed.','Returned item remains attached to the prior patient until CA clearance.','Update documentation to reflect the current equipment state.']}
+    ]
+  },
+  {
+    num:'5',
+    title:'Discharge equipment planning',
+    summary:'Convert clinical reasoning into a discharge AT pathway.',
+    purpose:'Complete the Equipment Prescription Reasoning Tool and use trial evidence, patient needs and discharge context to plan the required discharge assistive technology pathway.',
+    links:['Draws on assessment, rehabilitation reasoning and trial findings.','Supports vendor communication, quote requests and ieMR documentation.','Feeds into discharge readiness and Team Leader discussion if the pathway cannot be achieved in time.'],
+    note:'Selection of AT must be based on the patient’s needs, not the availability or skillset of equipment vendors.',
+    steps:[
+      {type:'tool', title:'Complete Equipment Prescription Reasoning Tool', text:'Use the tool to structure clinical reasoning, AT requirements, trial findings and discharge planning.', roles:['PT','Tool'], detail:'The tool should hold the reasoning that supports prescription and communication with vendors or other external parties.', list:['Record the clinical need, functional rationale and discharge environment.','Include relevant measurements, trial findings and safety considerations.','Clarify whether the AT pathway is hire, definitive equipment, interim loan or another pathway.','Use the completed reasoning to support vendor communication and ieMR documentation.']},
+      {type:'decision', title:'Does the STARS existing fleet meet the patient’s needs?', text:'Check whether an existing STARS fleet item can meet the patient’s clinical and discharge requirements.', roles:['PT'], detail:'This should be a clinical suitability decision, not just a stock availability decision.', list:['Confirm whether fleet equipment meets size, SWL, configuration, pressure-care and functional requirements.','If fleet equipment is suitable, follow local approval, loan and documentation requirements.','If fleet equipment is not suitable, review market and vendor options.','Document why the selected pathway best meets the patient’s needs.']},
+      {type:'external', title:'Review market and local vendor options', text:'If STARS fleet does not meet the need, refer to AskNED for available market options and local vendors.', roles:['PT','External'], detail:'Use market review to identify appropriate AT options and suppliers, while keeping the patient’s needs as the primary selection driver.', list:['Refer to <a href="https://askned.com.au/" target="_blank" rel="noopener noreferrer">askned.com.au</a> to review available options and local vendors.','Check that proposed AT matches the patient’s functional, postural, pressure-care and discharge needs.','Do not let vendor availability or vendor skillset define the prescription.','Record why selected options are clinically appropriate.']},
+      {type:'external', title:'Send vendor email and document communication', text:'Use the Equipment Prescription Reasoning Tool to send the vendor email and copy the communication into ieMR.', roles:['PT','External','Tool'], detail:'Vendor communication should be clear enough for the supplier to understand the clinical need and quote the correct item.', list:['Use the Equipment Prescription Reasoning Tool to generate or support the vendor email.','Copy the vendor communication into ieMR as Physiotherapy [WARD AREA] Communication Note.','Include item requirements, measurements, trial findings and relevant discharge constraints.','Record requested quote, trial, delivery or fitting actions.']},
+      {type:'external', title:'Confirm quote, trial and delivery pathway', text:'Check that any quote or trial plan matches the clinically required AT configuration and timeframe.', roles:['PT','External'], detail:'The quote and delivery plan should match the prescribed configuration and the discharge pathway.', list:['Check that the quote matches the required item, size, accessories and configuration.','Clarify hire versus definitive AT, delivery location and expected timeframe.','Confirm whether additional approvals, forms or supporting letters are required.','Record unresolved barriers for discharge readiness review.']}
+    ]
+  },
+  {
+    num:'6',
+    title:'Discharge readiness and Team Leader options',
+    summary:'Check whether required AT can be ready for discharge.',
+    purpose:'Confirm whether the required assistive technology pathway can support safe discharge. If definitive AT is not available and hire is not suitable, discuss ongoing options with the Team Leader.',
+    links:['Uses information from the prescription tool, quotes, trial outcomes and delivery coordination.','May loop back to sourcing, hire, loan or clinical review if the current plan cannot support discharge.'],
+    note:'Keep barriers visible and assign ownership for the next action rather than letting delays remain unclear.',
+    steps:[
+      {type:'decision', title:'Is essential AT ready for discharge?', text:'Confirm whether required AT is approved, sourced, delivered, loaned, hired or otherwise available for discharge.', roles:['PT','External'], detail:'This is the final readiness check before discharge planning is treated as complete.', list:['Confirm definitive AT status.','Confirm hire AT availability and suitability.','Confirm any approved STARS loan pathway.','Confirm delivery, fitting, training and handover requirements.']},
+      {type:'decision', title:'Review interim options and Team Leader discussion', text:'If definitive AT is not available for EDD and hire options are not suitable, discuss ongoing options with your Team Leader.', roles:['PT'], detail:'The discussion should focus on safe, realistic options and who owns the next action.', list:['Clarify the minimum AT required for safe discharge.','Confirm why hire is unavailable or unsuitable.','Consider approved STARS loan, supplier interim options or revised planning pathway where appropriate.','Agree the next action, owner and communication required with the broader treating team.']}
+    ]
+  },
+  {
+    num:'7',
+    title:'Discharge, loan and return-to-stock',
+    summary:'Complete discharge AT pathway or clear returned equipment.',
+    purpose:'At discharge, external equipment is confirmed, STARS equipment is returned or formally loaned, and any returned item is cleaned, checked and cleared before reuse.',
+    links:['Completes the patient episode when AT is ready, loaned or returned.','Returned items become available only after CA cleaning, safety checks and Master List clearance.','Loaned STARS equipment remains allocated until physically returned and cleared.'],
+    note:'The workflow is complete when each item is either safely discharged or loaned, or cleaned, checked and restored to availability.',
+    steps:[
+      {type:'', title:'Final discharge equipment confirmation', text:'Confirm the patient has the equipment required for safe discharge.', roles:['PT','External'], detail:'This final check prevents the equipment plan from appearing complete while there are still unresolved setup, fitting or delivery risks.', list:['Confirm the patient has the AT required for safe discharge.','For equipment with customised components, ensure AT is delivered to STARS hospital 2-3 days prior to EDD for treating team review.','Confirm setup, fitting, education and carer/support worker training requirements.','Document the final AT plan.']},
+      {type:'external', title:'STARS loan if approved', text:'If STARS equipment is loaned, complete approval and register requirements and keep the item allocated until return.', roles:['PT','External'], detail:'Loan is case-by-case and should not be treated as routine discharge supply.', list:['Confirm approval pathway as required.','Record loan in the relevant register.','Educate patient/carer regarding non-modification, risk and return timeframe.','Keep the item allocated until physically returned and cleared.']},
+      {type:'return', title:'Returned item enters CA pathway', text:'Returned equipment is cleaned, checked and cleared by CA before it becomes available for another patient.', roles:['CA'], detail:'This is the boundary that protects equipment safety and tracking.', list:['Complete cleaning and maintenance checklist.','Report faults and hold faulty equipment out of use.','Update maintenance and safety cells as required.','Remove patient details from Master List only after clearance.']},
+      {type:'return', title:'Item available again', text:'Once cleared, the item can be reallocated to the next patient and the cycle starts again.', roles:['CA'], detail:'Each item is cleared individually. A patient with multiple items may have items become available at different times.', list:['Patient details removed from that specific item.','Master List reflects available status.','Item returned to correct storage location.','Next patient allocation can occur.']}
+    ]
+  }
+];
+
+  let wfSelectedPhase = 0;
+  let wfSelectedStep = 0;
+  let wfAllVisible = false;
+
+  function wfEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function(ch) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch];
+    });
+  }
+  function wfRoleClass(role) {
+    if (role === 'CA') return 'ca';
+    if (role === 'External') return 'external';
+    if (role === 'Tool') return 'tool';
+    return '';
+  }
+  function wfTags(roles) {
+    return (roles || []).map(role => `<span class="wf-tag ${wfRoleClass(role)}">${wfEscape(role)}</span>`).join('');
+  }
+  function wfBullets(items) {
+    return (items || []).map(item => `<li>${item}</li>`).join('');
+  }
+  function wfStepType(type) {
+    return type ? wfEscape(type) : '';
+  }
+
+  function renderWorkflowNav() {
+    const nav = document.getElementById('wfPhaseNav');
+    if (!nav) return;
+    nav.innerHTML = wfPhaseGroups.map(group => `
+      <div class="wf-group-label">${wfEscape(group.label)}</div>
+      ${group.phases.map(index => {
+        const phase = wfPhases[index];
+        return `<button type="button" class="nav-item wf-nav-item ${index === wfSelectedPhase ? 'is-active' : ''}" onclick="selectWorkflowPhase(${index})">
+          <span class="nav-dot" data-state="${index === wfSelectedPhase ? 'filled' : 'empty'}"></span>
+          <span class="nav-text">
+            <span class="nav-num">Phase ${wfEscape(phase.num)}</span>
+            <span class="nav-title">${wfEscape(phase.title)}</span>
+            <span class="nav-phase">${wfEscape(phase.summary)}</span>
+          </span>
+        </button>`;
+      }).join('')}
+    `).join('');
+  }
+
+  function workflowPhaseCard(phase, phaseIndex, includeActive) {
+    return `<article class="wf-phase-card" data-wf-phase-card="${phaseIndex}">
+      <div class="wf-card-head">
+        <span class="phase-chip">Phase ${wfEscape(phase.num)}</span>
+        <h2>${wfEscape(phase.title)}</h2>
+        <p>${wfEscape(phase.purpose)}</p>
+      </div>
+      <div class="wf-card-body">
+        <div class="wf-steps">
+          ${phase.steps.map((step, stepIndex) => `
+            <button type="button" class="wf-step-card ${includeActive && stepIndex === wfSelectedStep ? 'is-active' : ''}" data-type="${wfStepType(step.type)}" onclick="${includeActive ? `selectWorkflowStep(${stepIndex})` : `selectWorkflowPhaseAndStep(${phaseIndex}, ${stepIndex})`}">
+              <h3>${wfEscape(step.title)}</h3>
+              <p>${wfEscape(step.text)}</p>
+              <div class="wf-meta-row">${wfTags(step.roles)}</div>
+            </button>
+          `).join('')}
+        </div>
+        <div class="wf-connections">
+          <h3>Phase connections</h3>
+          <ul>${(phase.links || []).map(link => `<li>${wfEscape(link)}</li>`).join('')}</ul>
+          <div class="wf-key-note"><strong>Note:</strong> ${wfEscape(phase.note)}</div>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function renderWorkflowSelectedPhase() {
+    const target = document.getElementById('wfSelectedPhase');
+    if (!target) return;
+    target.innerHTML = workflowPhaseCard(wfPhases[wfSelectedPhase], wfSelectedPhase, true);
+    updateWorkflowDetail();
+  }
+  function renderWorkflowAllPhases() {
+    const target = document.getElementById('wfAllPhases');
+    if (!target) return;
+    target.innerHTML = wfPhases.map((phase, index) => workflowPhaseCard(phase, index, false)).join('');
+  }
+  function selectWorkflowPhase(index) {
+    wfSelectedPhase = index;
+    wfSelectedStep = 0;
+    renderWorkflowNav();
+    renderWorkflowSelectedPhase();
+    const selected = document.getElementById('wfSelectedPhase');
+    if (selected) selected.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function selectWorkflowPhaseAndStep(phaseIndex, stepIndex) {
+    wfSelectedPhase = phaseIndex;
+    wfSelectedStep = stepIndex;
+    renderWorkflowNav();
+    renderWorkflowSelectedPhase();
+    updateWorkflowDetail();
+  }
+  function selectWorkflowStep(index) {
+    wfSelectedStep = index;
+    document.querySelectorAll('#wfSelectedPhase .wf-step-card').forEach((card, i) => card.classList.toggle('is-active', i === index));
+    updateWorkflowDetail();
+  }
+  function updateWorkflowDetail() {
+    const phase = wfPhases[wfSelectedPhase];
+    const step = phase?.steps?.[wfSelectedStep];
+    if (!step) return;
+    const title = document.getElementById('wfDetailTitle');
+    const tags = document.getElementById('wfDetailTags');
+    const text = document.getElementById('wfDetailText');
+    const list = document.getElementById('wfDetailList');
+    const jump = document.getElementById('wfToolJump');
+    if (title) title.textContent = step.title;
+    if (tags) tags.innerHTML = wfTags(step.roles);
+    if (text) text.textContent = step.detail || '';
+    if (list) list.innerHTML = wfBullets(step.list || []);
+    if (jump) {
+      const isToolStep = /Prescription Reasoning Tool/i.test(step.title || '') || (step.roles || []).includes('Tool');
+      jump.innerHTML = isToolStep ? `<button class="btn primary" type="button" onclick="openPrescriptionPart('part4')">Open prescription tool</button>` : "";
+    }
+  }
+  function toggleWorkflowAll() {
+    wfAllVisible = !wfAllVisible;
+    const selected = document.getElementById('wfSelectedPhase');
+    const all = document.getElementById('wfAllPhases');
+    const btn = document.getElementById('wfShowAllBtn');
+    if (selected) selected.classList.toggle('is-hidden', wfAllVisible);
+    if (all) all.classList.toggle('is-visible', wfAllVisible);
+    if (btn) {
+      btn.textContent = wfAllVisible ? 'Show selected phase' : 'Show all phases';
+      btn.classList.toggle('is-on', wfAllVisible);
+    }
+  }
+
+  function toggleWorkflowSupport(forceState) {
+    if (typeof closeDropdowns === 'function') closeDropdowns();
+    const workflow = document.getElementById('workflowSupport');
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : !document.body.classList.contains('workflow-active');
+    document.body.classList.toggle('workflow-active', shouldOpen);
+    if (workflow) workflow.hidden = !shouldOpen;
+    const btn = document.getElementById('workflowSupportBtn');
+    if (btn) {
+      btn.textContent = shouldOpen ? 'Return to prescription tool' : 'Need workflow support?';
+      btn.classList.toggle('is-on', shouldOpen);
+      btn.classList.toggle('primary', shouldOpen);
+    }
+    const title = document.getElementById('appTitle');
+    if (title) title.textContent = shouldOpen ? 'STARS Inpatient AT Workflow Support' : 'STARS Wheelchair Prescription Reasoning Tool';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function openPrescriptionPart(partId) {
+    toggleWorkflowSupport(false);
+    setTimeout(function() {
+      if (typeof jumpToSection === 'function') jumpToSection(partId || 'part4');
+    }, 120);
+  }
+
+  function openEasterEgg() {
+    const overlay = document.getElementById('easterEggOverlay');
+    if (overlay) overlay.hidden = false;
+  }
+  function closeEasterEgg() {
+    const overlay = document.getElementById('easterEggOverlay');
+    if (overlay) overlay.hidden = true;
+  }
+
+  (function initialiseCombinedTool() {
+    document.querySelectorAll('.top-actions > *:not(#workflowSupportBtn)').forEach(el => el.classList.add('prescription-only-action'));
+    const title = document.getElementById('appTitle');
+    if (title) {
+      title.addEventListener('click', function(e) {
+        if (e.detail === 3) {
+          e.preventDefault();
+          openEasterEgg();
+        }
+      });
+    }
+    const overlay = document.getElementById('easterEggOverlay');
+    if (overlay) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeEasterEgg();
+      });
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeEasterEgg();
+    });
+    renderWorkflowNav();
+    renderWorkflowSelectedPhase();
+    renderWorkflowAllPhases();
+  })();
+</script>
+
 </body>
 </html>
